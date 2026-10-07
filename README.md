@@ -28,7 +28,14 @@
 
 ## 演示视频
 
-> 🎬 `docs/media/demo.mp4` —— *（待补：录制好的演示视频会放在这里 / Release 附件里）*
+[![demo video](docs/screenshots/04-video-poster.png)](https://qiyuechen0929.github.io/personal-website/docs/media/demo.mp4)
+
+▶ **[点这里播放演示视频](https://qiyuechen0929.github.io/personal-website/docs/media/demo.mp4)**（仓库内版本，已压缩为网络可直接播放）
+
+- 仓库内视频文件：[`docs/media/demo.mp4`](docs/media/demo.mp4)
+- 也可以在 X 上看：[@chenqiyueapgm](https://x.com/chenqiyueapgm)
+
+> 全尺寸原片（116.9 MB）未入库，仓库内为压缩后的网络版，内容一致。
 
 ---
 
