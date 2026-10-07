@@ -1,0 +1,242 @@
+<!-- ==================== 2D 个人主页（门厅） ==================== -->
+<div id="portal-flash" aria-hidden="true"></div>
+<div id="cursor" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
+
+<div id="site">
+  <canvas id="dust" aria-hidden="true"></canvas>
+  <div id="progress" aria-hidden="true"><i></i></div>
+  <nav id="rooms" aria-label="页面导航"></nav>
+
+  <div id="site-top">
+    <div class="sb glass">
+      <span class="pulse-dot"></span>
+      <b>ChenQiyue 的书房</b><small>一间会呼吸的屋子</small>
+    </div>
+    <div id="site-tools">
+      <button class="tbtn glass" id="st-theme" title="开灯 / 关灯（同步屋子昼夜）" aria-label="切换明暗">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>
+      </button>
+      <button class="tbtn glass" id="st-sound" title="声音（进屋后生效）" aria-label="声音">
+        <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+      </button>
+      <button class="tbtn glass" id="st-enter" title="进入我的空间" aria-label="进入空间">
+        <svg viewBox="0 0 24 24"><path d="M14 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M3 12h11"/><path d="M11 8l4 4-4 4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main class="wrap">
+
+    <!-- ============ 玄关：Hero ============ -->
+    <section id="hero" data-nav="门厅">
+      <div class="grid">
+        <div class="left">
+          <div class="eyebrow rv"><i></i>软件工程学生 · 一个可以走进去的个人主页</div>
+          <h1 class="rv d1">把喜欢的东西，<br>都放进这间屋子</h1>
+          <p class="lede rv d2">
+            这里是 <em>ChenQiyue</em> 的门厅。<br>
+            平时喜欢折腾 AI、开源、Web 和各种新鲜技术 —— 看到有意思的想法，<br>
+            第一反应不是"有没有必要"，而是<em>这玩意儿能不能做出来</em>。
+          </p>
+          <div class="cta-row rv d3">
+            <button class="btn" id="open-space" data-cursor="开门">
+              推门进去
+              <svg viewBox="0 0 24 24"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+            </button>
+            <button class="btn ghost" id="to-work">先看看作品</button>
+          </div>
+        </div>
+
+        <div class="stage-right rv d2">
+          <div class="glow-orb a"></div>
+          <div class="glow-orb b"></div>
+          <div class="doorway" id="doorway" data-cursor="推门">
+            <div class="cat">
+              <div class="tail"></div>
+              <div class="body"></div>
+              <div class="head"></div>
+              <div class="ear l"></div><div class="ear r"></div>
+            </div>
+            <div class="hint">推门进去 · 里面是我的空间</div>
+          </div>
+        </div>
+      </div>
+      <div class="scroll-cue"><span>SCROLL</span><i></i></div>
+    </section>
+
+    <!-- ============ 关于 ============ -->
+    <section class="sec" id="about" data-nav="关于">
+      <div class="sec-head rv">
+        <span class="idx">01</span><h2>关于这间屋子的主人</h2><p>ABOUT</p>
+      </div>
+      <div class="about-grid">
+        <div>
+          <p class="lead rv d1">我是 <strong>ChenQiyue</strong>，一名软件工程学生。平时比较喜欢折腾 AI、开源、Web 和各种新鲜技术。</p>
+
+          <p class="lead rv d2" style="margin-top:18px; font-size:15px">
+            看到一个有意思的想法，我的第一反应通常不是"有没有必要"，而是 ——
+            <strong>"这玩意儿能不能做出来？"</strong>
+          </p>
+
+          <p class="lead rv d2" style="margin-top:14px; font-size:15px">
+            我不太喜欢只停留在"听说过""研究过"这个阶段。比起看一堆教程，我更喜欢直接上手，
+            把东西跑起来，然后在不断踩坑的过程中慢慢搞明白它到底是怎么回事。
+          </p>
+
+          <p class="lead rv d3" style="margin-top:14px; font-size:15px">
+            当然，折腾的结果并不总是成功：有些项目最后变成了能正常运行的东西，
+            有些项目变成了一堆代码，还有一些到最后只能证明 —— <strong>这个想法确实不太行。</strong>
+            但我觉得这也挺有意思。
+          </p>
+
+          <div class="quote rv d3">
+            有些项目解决问题，有些项目制造问题。<br>
+            <b>我主要负责把它们做出来。</b>
+          </div>
+
+          <div class="chips rv d3">
+            <span class="chip">AI</span><span class="chip">Agent</span><span class="chip">开源</span>
+            <span class="chip">Web</span><span class="chip">3D</span><span class="chip">生成式内容</span>
+            <span class="chip">自动化</span><span class="chip">一切看起来挺有意思的东西</span>
+          </div>
+        </div>
+
+        <div class="facts rv d2">
+          <div class="fact"><k>现在</k><v>软件工程学生</v></div>
+          <div class="fact"><k>坐标</k><v>中国 · 东莞</v></div>
+          <div class="fact"><k>正在折腾</k><v>AI · Agent · 开源 · Web · 3D</v></div>
+          <div class="fact"><k>一句话</k><v>喜欢折腾，偶尔整活，认真做东西</v></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 作品 ============ -->
+    <section class="sec" id="work" data-nav="作品">
+      <div class="sec-head rv">
+        <span class="idx">02</span><h2>桌子上的东西</h2><p>PROJECTS</p>
+      </div>
+      <div class="cards">
+        <a class="card rv d1" href="https://github.com/qiyuechen0929/sini" target="_blank" rel="noopener">
+          <span class="num">01</span><span class="tag">Flutter</span>
+          <h3>似你 · Sini</h3>
+          <p>端侧优先的 AI 数字人格聊天 App：用聊天记录克隆 TA 的说话方式，语音克隆也在本地跑。</p>
+          <span class="go">GitHub 上看看 →</span>
+        </a>
+        <a class="card rv d2" href="https://github.com/qiyuechen0929/vision-bridge" target="_blank" rel="noopener">
+          <span class="num">02</span><span class="tag">PowerShell</span>
+          <h3>vision-bridge</h3>
+          <p>给纯文本模型"装眼睛"：自动把剪贴板/截图交给视觉模型转成文字，再交回你的 AI。</p>
+          <span class="go">GitHub 上看看 →</span>
+        </a>
+        <a class="card rv d3" href="https://github.com/qiyuechen0929/MagnetRush" target="_blank" rel="noopener">
+          <span class="num">03</span><span class="tag">HTML5</span>
+          <h3>MagnetRush</h3>
+          <p>纯 Canvas 写的赛车躲避小游戏：视觉特效、语音助手、技能系统、车库改装。</p>
+          <span class="go">打开玩玩 →</span>
+        </a>
+        <a class="card rv d1" href="https://github.com/qiyuechen0929/blender-heritage-scenes" target="_blank" rel="noopener">
+          <span class="num">04</span><span class="tag">Python</span>
+          <h3>古建场景生成</h3>
+          <p>AI 实时建模的低多边形中国古建场景：北京天坛 &amp; 佛山祖庙，含昼夜与巡游视频。</p>
+          <span class="go">GitHub 上看看 →</span>
+        </a>
+        <a class="card rv d2" href="https://github.com/qiyuechen0929/WinCleanPro" target="_blank" rel="noopener">
+          <span class="num">05</span><span class="tag">PowerShell</span>
+          <h3>WinCleanPro</h3>
+          <p>轻量 Windows 清理工具：把系统里的垃圾一次性扫干净，界面还是自己画的。</p>
+          <span class="go">GitHub 上看看 →</span>
+        </a>
+        <a class="card rv d3" href="https://github.com/qiyuechen0929" target="_blank" rel="noopener">
+          <span class="num">06</span><span class="tag">WebGL</span>
+          <h3>这间书房</h3>
+          <p>你现在站着的地方。Three.js 手搓、零素材纯代码 —— 门后面就是它。</p>
+          <span class="go">更多都在 GitHub →</span>
+        </a>
+      </div>
+      <p class="more-projects rv d3">
+        清单一直在变 —— <a href="https://github.com/qiyuechen0929" target="_blank" rel="noopener">github.com/qiyuechen0929</a>
+      </p>
+    </section>
+
+    <!-- ============ 书架 / 爱好 ============ -->
+    <section class="sec" id="life" data-nav="书架">
+      <div class="sec-head rv">
+        <span class="idx">03</span><h2>架子上的书</h2><p>LIFE</p>
+      </div>
+      <div class="life">
+        <div>
+          <div class="chips rv d1">
+            <span class="chip">编程</span><span class="chip">阅读</span><span class="chip">音乐</span>
+            <span class="chip">游戏</span><span class="chip">发呆看窗外</span><span class="chip">研究新工具</span>
+          </div>
+          <p class="rv d2" style="color:var(--muted); font-size:13.5px; line-height:1.85; margin-top:22px">
+            屋子里的每一层架子都放着我真正翻过的东西。<br>想翻哪本，进屋点它就行。
+          </p>
+        </div>
+        <div class="books rv d2">
+          <div class="book"><span class="spine"></span><span class="bk-name">《深夜书房使用指南》</span><span class="bk-by">自己写的，永远连载中</span></div>
+          <div class="book"><span class="spine"></span><span class="bk-name">《代码大全》</span><span class="bk-by">Steve McConnell</span></div>
+          <div class="book"><span class="spine"></span><span class="bk-name">《活着》</span><span class="bk-by">余华</span></div>
+          <div class="book"><span class="spine"></span><span class="bk-name">《人类简史》</span><span class="bk-by">尤瓦尔·赫拉利</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 联系 + 大门 ============ -->
+    <section class="sec" id="contact" data-nav="联系">
+      <div class="sec-head rv">
+        <span class="idx">04</span><h2>敲敲窗</h2><p>CONTACT</p>
+      </div>
+      <div class="socials">
+        <a class="social rv d1" href="https://github.com/qiyuechen0929" target="_blank" rel="noopener">
+          <b>GitHub</b><small>代码都在这</small>
+        </a>
+        <a class="social rv d2" href="mailto:2652909926@qq.com">
+          <b>QQ 邮箱</b><small>2652909926@qq.com</small>
+        </a>
+        <a class="social rv d3" href="mailto:qiyuechen114@gmail.com">
+          <b>Gmail</b><small>qiyuechen114@gmail.com</small>
+        </a>
+        <a class="social rv d3" href="https://x.com/chenqiyueapgm" target="_blank" rel="me noopener">
+          <b>X / 推特</b><small>@chenqiyueapgm</small>
+        </a>
+        <a class="social rv d3" href="https://t.me/ChenQiyue0929" target="_blank" rel="me noopener">
+          <b>Telegram</b><small>@ChenQiyue0929</small>
+        </a>
+      </div>
+
+      <div id="portal-cta" class="rv d2">
+        <h2>门没锁</h2>
+        <p>屋里灯已经留好了 —— 桌上的电脑、墙上的相框、架子上的书，你随便翻。</p>
+        <button class="btn" id="open-space-2" data-cursor="开门">
+          推门进去
+          <svg viewBox="0 0 24 24"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ 写在 X 上的思考 ============ -->
+    <section class="sec" id="thinking" data-nav="思考">
+      <div class="sec-head rv">
+        <span class="idx">05</span><h2>写在 X 上的思考</h2><p>NOTES</p>
+      </div>
+      <a class="tweet rv d1" href="https://x.com/chenqiyueapgm/status/2103454717993238566" target="_blank" rel="noopener">
+        <div class="tw-head">
+          <span class="tw-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <span><b>@chenqiyueapgm</b><small>在 X 上 · 原文链接</small></span>
+          <span class="tw-go">去 X 读全文 →</span>
+        </div>
+        <h3>关于未来 AI 发展的思考</h3>
+        <p>正文挺长的，就不搬进屋子里了 —— 想看的点开这条推文。</p>
+        <div class="tw-foot"><span>未来 AI / Agent</span><span class="dot">·</span><span>x.com</span></div>
+      </a>
+    </section>
+
+    <footer>
+      <span>用好奇心供电</span><span class="dot">·</span><span>© 2026 ChenQiyue</span>
+      <span class="dot">·</span><span>手搓 HTML / CSS / WebGL</span>
+    </footer>
+  </main>
+</div>
+<!-- ==================== /2D 个人主页 ==================== -->

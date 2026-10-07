@@ -1,0 +1,8 @@
+node_modules/
+.tmp/
+server/data/
+.certs/
+.acme/
+*.log
+.DS_Store
+Thumbs.db

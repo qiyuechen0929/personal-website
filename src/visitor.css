@@ -1,0 +1,57 @@
+/* ==================== 访客计数（你是第几位） ==================== */
+#visit-hero{
+  display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin-top:20px; padding:10px 17px 10px 15px; border-radius:999px;
+  font-size:13.5px; color:var(--muted,#8b93a7); letter-spacing:.2px;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+}
+[data-theme="light"] #visit-hero{background:rgba(0,0,0,.028); border-color:rgba(0,0,0,.07)}
+#visit-hero b, #visit-pill b{
+  color:var(--fg,#e9edf7); font-weight:700; font-size:15.5px;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum";
+}
+[data-theme="light"] #visit-hero b, [data-theme="light"] #visit-pill b{color:#101523}
+#visit-hero .vc-sub{opacity:.6; font-size:12px}
+.vc-dot{
+  width:7px; height:7px; border-radius:50%; background:#5ce1a6; flex:none;
+  animation:vcPulse 2.4s ease-out infinite;
+}
+@keyframes vcPulse{
+  0%{box-shadow:0 0 0 0 rgba(92,225,166,.5)}
+  70%{box-shadow:0 0 0 9px rgba(92,225,166,0)}
+  100%{box-shadow:0 0 0 0 rgba(92,225,166,0)}
+}
+.vc-num{display:inline-block}
+.vc-num.pop{animation:vcPop .55s cubic-bezier(.2,1.5,.4,1)}
+@keyframes vcPop{0%{transform:scale(.8)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* 右下角常驻小徽章 */
+#visit-pill{
+  position:fixed; right:18px; bottom:16px; z-index:75;
+  display:flex; align-items:center; gap:9px;
+  padding:9px 15px 9px 13px; border-radius:999px;
+  font-size:12.5px; color:var(--muted,#8b93a7);
+  background:rgba(14,17,26,.62); border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 8px 26px rgba(0,0,0,.28);
+  opacity:0; transform:translateY(10px); transition:opacity .6s ease, transform .6s ease;
+  pointer-events:none; white-space:nowrap;
+}
+[data-theme="light"] #visit-pill{background:rgba(255,255,255,.72); border-color:rgba(0,0,0,.08); color:#5b6478}
+#visit-pill.on{opacity:1; transform:translateY(0)}
+/* 门厅里已经有内嵌计数条；这个小徽章只在 3D 房间里出现（也避免压到角落的猫） */
+body.mode-site #visit-pill{opacity:0 !important; transform:translateY(10px) !important; pointer-events:none !important;}
+#visit-pill .vc-sep{opacity:.35}
+body.mode-space #visit-pill{opacity:.3}
+@media (max-width:760px){
+  #visit-hero{font-size:12.5px; padding:9px 14px}
+  #visit-hero b{font-size:14px}
+  #visit-hero .vc-sub{display:none}
+  #visit-pill{right:10px; bottom:10px; font-size:11.5px; padding:7px 12px}
+  #visit-pill .vc-sep, #visit-pill .vc-extra{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .vc-dot{animation:none} .vc-num.pop{animation:none}
+  #visit-pill{transition:none}
+}
