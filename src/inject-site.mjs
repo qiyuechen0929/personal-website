@@ -80,9 +80,9 @@ t = t.replace(projRe, `  projects: [
 console.log("ok  projects → 6 个真实 GitHub 项目");
 
 // 5) 访客计数接口配置
-// 给 3D 面板加一个 "AI 思考"（不放长文，只给链接）
+// 给 3D 面板加一个 "我的博客"（不放长文，只给链接）
 if (t.includes("const PANELS={") && !t.includes("thinking:{")) {
-  t = t.replace("const PANELS={", "const PANELS={\n  thinking:{\n    title:\"AI 思考\", sub:\"桌上那张手稿\", ico:ICONS.about,\n    html(){\n      return '<p class=\"p-lead\">关于未来 AI 发展的一点想法，我写在 X 上；正文比较长，就不搬进屋里了。</p>'\n        + '<a class=\"proj\" href=\"https://x.com/chenqiyueapgm/status/2103454717993238566\" target=\"_blank\" rel=\"noopener\">'\n        + '<b>去 X 读全文<i>@chenqiyueapgm</i></b><p>在 X（推特）里打开这条推文</p></a>';\n    }\n  },");
+  t = t.replace("const PANELS={", "const PANELS={\n  thinking:{\n    title:\"我的博客\", sub:\"桌上那张手稿\", ico:ICONS.about,\n    html(){\n      return '<p class=\"p-lead\">平时写的东西都放在我自己的博客上 —— 技术笔记、折腾记录，偶尔的生活随笔。</p>'\n        + '<a class=\"proj\" href=\"https://060929.xyz\" target=\"_blank\" rel=\"noopener\">'\n        + '<b>去博客逛逛<i>060929.xyz</i></b><p>在浏览器里打开 ChenQiyue 的博客</p></a>';\n    }\n  },");
   console.log("ok  3D 面板新增 thinking");
 }
 const footAnchor = `  footer: "用好奇心供电"`;
@@ -146,7 +146,7 @@ const EXTRA_CSS = `
 body.warp #stage{opacity:1;}
 body.warp #topbar,body.warp #dots{opacity:0;}
 body.mode-space #light,body.mode-space #trail,body.mode-space #pet,body.mode-space #vignette{display:none;}
-/* 写在 X 上的思考（推文卡） */
+/* 我的博客（入口卡） */
 .tweet{display:block; text-decoration:none; color:inherit; margin-top:6px; padding:22px 24px 18px;
   border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.035);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);

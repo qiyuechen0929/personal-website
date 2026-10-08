@@ -898,7 +898,7 @@ body.mode-space #visit-pill{opacity:.3}
 body.warp #stage{opacity:1;}
 body.warp #topbar,body.warp #dots{opacity:0;}
 body.mode-space #light,body.mode-space #trail,body.mode-space #pet,body.mode-space #vignette{display:none;}
-/* 写在 X 上的思考（推文卡） */
+/* 我的博客（入口卡） */
 .tweet{display:block; text-decoration:none; color:inherit; margin-top:6px; padding:22px 24px 18px;
   border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.035);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -1149,20 +1149,20 @@ a.card{text-decoration:none; color:inherit; display:block;}
       </div>
     </section>
 
-    <!-- ============ 写在 X 上的思考 ============ -->
-    <section class="sec" id="thinking" data-nav="思考">
+    <!-- ============ 我的博客 ============ -->
+    <section class="sec" id="thinking" data-nav="博客">
       <div class="sec-head rv">
-        <span class="idx">05</span><h2>写在 X 上的思考</h2><p>NOTES</p>
+        <span class="idx">05</span><h2>我的博客</h2><p>BLOG</p>
       </div>
-      <a class="tweet rv d1" href="https://x.com/chenqiyueapgm/status/2103454717993238566" target="_blank" rel="noopener">
+      <a class="tweet rv d1" href="https://060929.xyz" target="_blank" rel="noopener">
         <div class="tw-head">
-          <span class="tw-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
-          <span><b>@chenqiyueapgm</b><small>在 X 上 · 原文链接</small></span>
-          <span class="tw-go">去 X 读全文 →</span>
+          <span class="tw-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M6.6 2.8h7.1l4.2 4.2v14.2H6.6z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M13.5 2.9v4.3h4.3M9.4 12.5h5.2M9.4 16.3h5.2"/></svg></span>
+          <span><b>ChenQiyue 的博客</b><small>060929.xyz</small></span>
+          <span class="tw-go">去博客逛逛 →</span>
         </div>
-        <h3>关于未来 AI 发展的思考</h3>
-        <p>正文挺长的，就不搬进屋子里了 —— 想看的点开这条推文。</p>
-        <div class="tw-foot"><span>未来 AI / Agent</span><span class="dot">·</span><span>x.com</span></div>
+        <h3>一直在折腾，偶尔有结果</h3>
+        <p>技术笔记、折腾记录，还有偶尔的生活随笔，都写在那边 —— 点开就是博客主界面。</p>
+        <div class="tw-foot"><span>Hexo · retro-desktop</span><span class="dot">·</span><span>060929.xyz</span></div>
       </a>
     </section>
 
@@ -1922,11 +1922,11 @@ const ICONS={
 };
 const PANELS={
   thinking:{
-    title:"AI 思考", sub:"桌上那张手稿", ico:ICONS.about,
+    title:"我的博客", sub:"桌上那张手稿", ico:ICONS.about,
     html(){
-      return '<p class="p-lead">关于未来 AI 发展的一点想法，我写在 X 上；正文比较长，就不搬进屋里了。</p>'
-        + '<a class="proj" href="https://x.com/chenqiyueapgm/status/2103454717993238566" target="_blank" rel="noopener">'
-        + '<b>去 X 读全文<i>@chenqiyueapgm</i></b><p>在 X（推特）里打开这条推文</p></a>';
+      return '<p class="p-lead">平时写的东西都放在我自己的博客上 —— 技术笔记、折腾记录，偶尔的生活随笔。</p>'
+        + '<a class="proj" href="https://060929.xyz" target="_blank" rel="noopener">'
+        + '<b>去博客逛逛<i>060929.xyz</i></b><p>在浏览器里打开 ChenQiyue 的博客</p></a>';
     }
   },
   about:{
@@ -3390,7 +3390,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
     })();
 
 
-    /* ================= 7. 桌上的手稿（关于未来 AI 的思考 · 点开开面板给链接） ================= */
+    /* ================= 7. 桌上的手稿（点开给「我的博客」入口） ================= */
     (function aiNote() {
       const g = new THREE.Group();
       g.position.set(.52, 1.032, -3.42); g.rotation.y = -.22;
@@ -3404,12 +3404,12 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
       const spark = sph(.013, M(0xffd79a, .3, .2), 8); spark.position.set(-.095, .052, .125); g.add(spark);
       add(g); T.aiNote = g;
       anim.push((t) => { spark.position.y = .052 + Math.sin(t * 1.7) * .012; });
-      hot("ai-note", "桌上的手稿 · 关于未来 AI",
+      hot("ai-note", "桌上的手稿 · 我的博客",
         [cover, pageL, pageR, spark],
         new THREE.Vector3(.52, 1.16, -3.42),
         (h) => {
           SND.pop();
-          if (typeof R.toast === "function") R.toast("关于未来 AI 的一点想法 · 写了挺长，去 X 看全文");
+          if (typeof R.toast === "function") R.toast("屋里写的东西都在博客上 · 点开去看看");
           flyThen(h, () => { if (typeof R.openPanel === "function") R.openPanel("thinking", h.anchor); });
         },
         { yaw: .12, pitch: .42, radius: 1.9, tx: .52, ty: 1.06, tz: -3.42 });
@@ -3644,7 +3644,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
     { k: "sec:work", t: "翻翻桌子上的作品" },
     { k: "sec:life", t: "看一眼书架与爱好" },
     { k: "sec:contact", t: "敲敲窗（联系方式）" },
-    { k: "sec:thinking", t: "读「写在 X 上的思考」" },
+    { k: "sec:thinking", t: "去「我的博客」看看" },
     { k: "act:cat", t: "撸一下门厅角落的猫" },
     { k: "act:theme", t: "开一次灯 / 关一次灯" },
     { k: "act:sound", t: "打开或关掉声音" },

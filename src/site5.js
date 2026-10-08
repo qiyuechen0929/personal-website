@@ -57,7 +57,7 @@
     { k: "sec:work", t: "翻翻桌子上的作品" },
     { k: "sec:life", t: "看一眼书架与爱好" },
     { k: "sec:contact", t: "敲敲窗（联系方式）" },
-    { k: "sec:thinking", t: "读「写在 X 上的思考」" },
+    { k: "sec:thinking", t: "去「我的博客」看看" },
     { k: "act:cat", t: "撸一下门厅角落的猫" },
     { k: "act:theme", t: "开一次灯 / 关一次灯" },
     { k: "act:sound", t: "打开或关掉声音" },

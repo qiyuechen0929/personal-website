@@ -1,5 +1,17 @@
 # 部署说明：个人网站 + 访客计数
 
+## 现在已经上线的入口（2026-10-08 更新）
+
+- ✅ **https://chenqiyue.ccwu.cc/** —— 443，**不带端口**（推荐对外用这个）
+  - 静态文件由服务器 nginx 直接托管：`/etc/nginx/sites-available/chenqiyue.ccwu.cc.conf`
+  - 证书：`/www/wwwroot/chenqiyue.ccwu.cc/certs/`，acme.sh 走 **DNS-01** 自动续期（每天 3 点 cron，续期后自动 reload）
+  - 计数接口 `/api/hit` 仍由容器里的 `server/server.mjs` 提供（nginx 反代 `https://127.0.0.1:6061/api/`），所以和 6061 那份**共享同一份访问数据**
+  - 站点目录里有 `.acme`（含 Cloudflare Token）和 `.certs/privkey.pem`，所以 vhost 只放行 `/`、`/index.html`、`/vendor/`、`/api/`，其余一律 404
+  - 前提：`/opt/ekko/hermes_data` 需要 `711`（只给通行权），否则 www-data 读不到里面的文件
+- http://chenqiyue.ccwu.cc:6061 —— 旧的带端口入口，容器直出，仍然可用（不想暴露的话在安全组关掉 6061 即可）
+- http://chenqiyue.ccwu.cc/（80）→ 301 跳到 https
+
+
 ## 需要什么
 - 网站本体：`index.html` + `vendor/three.min.js`（单文件站、零构建、零依赖）
 - 访客计数：`server/server.mjs`（只用 Node 内置模块，内存约 25~30MB）

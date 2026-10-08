@@ -488,7 +488,7 @@
     })();
 
 
-    /* ================= 7. 桌上的手稿（关于未来 AI 的思考 · 点开开面板给链接） ================= */
+    /* ================= 7. 桌上的手稿（点开给「我的博客」入口） ================= */
     (function aiNote() {
       const g = new THREE.Group();
       g.position.set(.52, 1.032, -3.42); g.rotation.y = -.22;
@@ -502,12 +502,12 @@
       const spark = sph(.013, M(0xffd79a, .3, .2), 8); spark.position.set(-.095, .052, .125); g.add(spark);
       add(g); T.aiNote = g;
       anim.push((t) => { spark.position.y = .052 + Math.sin(t * 1.7) * .012; });
-      hot("ai-note", "桌上的手稿 · 关于未来 AI",
+      hot("ai-note", "桌上的手稿 · 我的博客",
         [cover, pageL, pageR, spark],
         new THREE.Vector3(.52, 1.16, -3.42),
         (h) => {
           SND.pop();
-          if (typeof R.toast === "function") R.toast("关于未来 AI 的一点想法 · 写了挺长，去 X 看全文");
+          if (typeof R.toast === "function") R.toast("屋里写的东西都在博客上 · 点开去看看");
           flyThen(h, () => { if (typeof R.openPanel === "function") R.openPanel("thinking", h.anchor); });
         },
         { yaw: .12, pitch: .42, radius: 1.9, tx: .52, ty: 1.06, tz: -3.42 });
