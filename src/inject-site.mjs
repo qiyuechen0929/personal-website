@@ -8,10 +8,16 @@ const FILE = path.join(DIR, "index.html");
 const P = ".ekko-tmp/site-parts/";
 
 // ---- 从最新原始备份重新注入（可重复执行，不叠加） ----
-const backups = fs.readdirSync(DIR)
-  .filter((f) => /^index\.backup-\d{8}-\d{6}\.html$/.test(f)).sort();
-if (!backups.length) { console.error("没有找到原始备份，中止"); process.exit(1); }
-const BACKUP = path.join(DIR, backups[backups.length - 1]);
+// 原始底稿：固定用 index.original.html；不存在就从【最早】的备份复制一份
+// （最早的备份才是未注入的原始文件，最新的几个是注入后的产物，别再拿它们当底稿了）
+const ORIG = path.join(DIR, "index.original.html");
+if (!fs.existsSync(ORIG)) {
+  const backups = fs.readdirSync(DIR).filter((f) => /^index\.backup-\d{8}-\d{6}\.html$/.test(f)).sort();
+  if (!backups.length) { console.error("没有找到原始备份，中止"); process.exit(1); }
+  fs.copyFileSync(path.join(DIR, backups[0]), ORIG);
+  console.log("已创建 index.original.html（来自 " + backups[0] + "）");
+}
+const BACKUP = ORIG;
 let t = fs.readFileSync(BACKUP, "utf8");
 const before = t.length;
 console.log("源文件（原始备份）: " + path.basename(BACKUP));

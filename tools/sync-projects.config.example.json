@@ -1,0 +1,12 @@
+{
+  "_说明": "复制成 tools/sync-projects.config.json 再改。curated = 你手挑的卡片（name/tag/desc 留空则用 GitHub 上的真实数据）；autoAppend = 自动追加你的其它仓库；exclude = 永不出现。改完直接生效，不用动代码。",
+  "user": "你的 GitHub 用户名",
+  "siteIndex": "/绝对路径/到你的/index.html",
+  "maxTotal": 8,
+  "autoAppend": { "enabled": true, "minDescLen": 8 },
+  "exclude": [],
+  "curated": [
+    { "repo": "你的仓库名", "name": "中文名（可留空）", "tag": "技术标签（可留空）", "desc": "一句话介绍（可留空）" },
+    { "name": "某个不走 GitHub 的条目", "tag": "WebGL", "desc": "你现在站着的地方。", "link": "https://github.com/你的用户名" }
+  ]
+}

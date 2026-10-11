@@ -378,3 +378,39 @@
     ensureRoom,
   };
 })();
+
+/* ==================================================================
+   作品卡片渲染器（数据来自 CONFIG.projects，由 GitHub 同步任务自动更新）
+   · 页面里的静态卡片是兜底：这段脚本一旦可用就用数据重渲染一遍
+   ================================================================== */
+(function () {
+  var done = false;
+  function ready() {
+    try {
+      var box = document.getElementById('projCards');
+      if (!box) return false;
+      var cfg = (typeof CONFIG !== 'undefined' && CONFIG) ? CONFIG : (window.CONFIG || null);
+      if (!cfg || !cfg.projects || !cfg.projects.length) return false;
+      var html = cfg.projects.map(function (p, i) {
+        var n = (i + 1 < 10 ? '0' : '') + (i + 1);
+        var cls = 'card rv d' + ((i % 3) + 1);
+        var open = p.link ? '<a class="' + cls + '" href="' + p.link + '" target="_blank" rel="noopener">' : '<div class="' + cls + '">';
+        var close = p.link ? '</a>' : '</div>';
+        var go = p.link ? 'GitHub 上看看 →' : '更多都在 GitHub →';
+        return open +
+          '<span class="num">' + n + '</span><span class="tag">' + (p.tag || 'Code') + '</span>' +
+          '<h3>' + (p.name || '') + '</h3><p>' + (p.desc || '') + '</p>' +
+          '<span class="go">' + go + '</span>' + close;
+      }).join('');
+      box.innerHTML = html;
+      var rvs = box.querySelectorAll('.rv');
+      for (var k = 0; k < rvs.length; k++) {
+        (function (el, i) { setTimeout(function () { el.classList.add('in'); }, 70 + i * 70); })(rvs[k], k);
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+  function boot() { if (done) return; if (ready()) done = true; }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  window.addEventListener('load', boot);
+})();

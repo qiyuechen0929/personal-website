@@ -187,6 +187,27 @@ acme.sh --install-cert -d your.domain --ecc \
 
 ---
 
+## 作品区自动同步（可选）
+
+门厅的「作品」卡片和 3D 房间里的作品面板读的是**同一份数据** —— `index.html` 里的 `projects` 数组。这份数据可以让脚本自动跟着 GitHub 走：
+
+```bash
+cp tools/sync-projects.config.example.json tools/sync-projects.config.json
+# 填上：你的 GitHub 用户名 / index.html 绝对路径 / 想固定展示的仓库
+node tools/sync-projects.mjs
+```
+
+- 你手写的中文名称、简介优先保留，其它（语言、链接、星数）从 GitHub 现取
+- 可选自动追加你**其它有真实简介的仓库**（`autoAppend`），上限自己定
+- 幂等（没变化不写）、写前自动备份、产物语法校验，**失败绝不覆盖**
+- 想每天自动跑，加一条 cron：
+
+```bash
+10 4 * * * /usr/bin/node /绝对路径/tools/sync-projects.mjs >/dev/null 2>&1
+```
+
+> 页面上那几行静态卡片是**兜底**：脚本没跑、或者 JS 不可用时，页面照常显示，不会开天窗。
+
 ## 许可证
 
 [MIT](LICENSE) © 2026 Chen Qiyue
