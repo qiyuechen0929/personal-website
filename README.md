@@ -208,6 +208,15 @@ node tools/sync-projects.mjs
 
 > 页面上那几行静态卡片是**兜底**：脚本没跑、或者 JS 不可用时，页面照常显示，不会开天窗。
 
+### 也可以交给 GitHub Actions（不用自己的服务器）
+
+仓库里已经放好 `.github/workflows/sync-projects.yml`：每天跑同一个脚本，再把改动提交回仓库。
+
+- 定时是 UTC 20:10（北京时间 04:10），也可以在 Actions 页面手动触发一次
+- 账号自动取当前仓库的 owner；**fork 到你自己名下后**，改一下 `tools/sync-projects.config.json`（精选列表 / 上限 / 屏蔽名单），再去 Actions 页面点一次 **Enable workflow**
+  （GitHub 对 fork 里的定时任务默认是关闭的，必须手动启用一次）
+- 它只更新 `index.html`，你的部署方式完全不用改
+
 ## 许可证
 
 [MIT](LICENSE) © 2026 Chen Qiyue

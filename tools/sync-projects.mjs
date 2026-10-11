@@ -32,7 +32,10 @@ const LOG = cfg.logFile || path.join(path.dirname(CFG), 'sync-projects.log');
 
 const buf = [];
 const log = (m) => { const s = '[' + new Date().toISOString().replace('T', ' ').slice(0, 19) + '] ' + m; buf.push(s); console.log(s); };
-const flush = (code) => { try { fs.appendFileSync(LOG, buf.join('\n') + '\n'); } catch {} process.exit(code || 0); };
+const flush = (code) => {
+  try { fs.mkdirSync(path.dirname(LOG), { recursive: true }); fs.appendFileSync(LOG, buf.join('\n') + '\n'); } catch {}
+  process.exit(code || 0);
+};
 const die = (m) => { log('中止：' + m); flush(1); };
 
 const IDX = cfg.siteIndex;

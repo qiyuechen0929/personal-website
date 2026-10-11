@@ -1,0 +1,22 @@
+{
+  "_说明": "GitHub Actions 和本地都读这份配置。路径用仓库内相对路径；日志与备份写到 .sync-backups/（已被 .gitignore 忽略）。curated = 你手挑的卡片（name/tag/desc 留空则用 GitHub 真实数据）；autoAppend = 自动追加其它有真实简介的仓库；exclude = 永不出现。",
+  "user": "qiyuechen0929",
+  "siteIndex": "index.html",
+  "logFile": ".sync-backups/sync.log",
+  "backupDir": ".sync-backups",
+  "maxTotal": 8,
+  "autoAppend": { "enabled": true, "minDescLen": 8 },
+  "exclude": [
+    "Student-Score-Analysis-System-Based-on-C",
+    "Clothing-Management-System-in-C",
+    "Common-solutions-to-fix-missing-vision-when-integrating-DeepSeek-into-Codex"
+  ],
+  "curated": [
+    { "repo": "sini", "name": "似你 · Sini", "tag": "Flutter", "desc": "端侧优先的 AI 数字人格聊天 App：用聊天记录克隆 TA 的说话方式，语音克隆也在本地跑。" },
+    { "repo": "vision-bridge", "tag": "PowerShell", "desc": "给纯文本模型「装眼睛」：把剪贴板/截图自动交给视觉模型转成文字，再交回你的 AI。" },
+    { "repo": "MagnetRush", "tag": "HTML5", "desc": "纯 Canvas 写的赛车躲避小游戏：视觉特效、语音助手、技能系统、车库改装。" },
+    { "repo": "blender-heritage-scenes", "name": "古建场景生成", "tag": "Python", "desc": "AI 实时建模的低多边形中国古建场景：北京天坛 & 佛山祖庙，含昼夜与巡游视频。" },
+    { "repo": "WinCleanPro", "tag": "PowerShell", "desc": "轻量 Windows 清理工具：一次把系统垃圾扫干净，界面也是自己画的。" },
+    { "name": "这间书房", "tag": "WebGL", "desc": "你现在站着的地方。Three.js 手搓、零素材纯代码 —— 门后面就是它。", "link": "https://github.com/qiyuechen0929" }
+  ]
+}

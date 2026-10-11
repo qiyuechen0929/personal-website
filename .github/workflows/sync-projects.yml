@@ -1,0 +1,56 @@
+name: 作品区自动同步
+
+# 每天自动从 GitHub 拉取仓库数据，更新 index.html 里的 projects 数组。
+# · 想改展示哪些项目：编辑 tools/sync-projects.config.json
+# · fork 到你自己名下：先去 Actions 页面点一次「Enable workflow」，再改上面的配置
+# · GitHub 对 fork 的定时任务是默认关闭的，需要手动启用一次
+
+on:
+  schedule:
+    - cron: '10 20 * * *'   # UTC 20:10 = 北京时间 04:10
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 用当前仓库的 owner 当 GitHub 账号
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = 'tools/sync-projects.config.json';
+            const c = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (c.user !== process.env.OWNER) { c.curated = []; }
+            c.user = process.env.OWNER;
+            fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');
+            console.log('使用 GitHub 账号：' + c.user);
+          "
+
+      - name: 同步作品数据
+        run: node tools/sync-projects.mjs tools/sync-projects.config.json
+
+      - name: 有变化才提交
+        run: |
+          SITE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('tools/sync-projects.config.json','utf8')).siteIndex)")
+          git add "$SITE"
+          if git diff --cached --quiet; then
+            echo "数据没有变化，跳过提交"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: 作品区自动同步（GitHub Actions）"
+          git push

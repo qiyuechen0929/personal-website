@@ -10,3 +10,6 @@ server/data/
 *.log
 .DS_Store
 Thumbs.db
+
+# 自动同步任务产生的日志与备份
+.sync-backups/
