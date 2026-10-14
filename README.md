@@ -1,4 +1,4 @@
-# 陈启粤的书房 · ChenQiyue's Study
+# ChenQiyue的书房 · ChenQiyue's Study
 
 > 一间会呼吸的屋子 —— 你可以在浏览器里**推门进去**。
 
