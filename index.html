@@ -141,6 +141,10 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer;}
 #panel-flip.flip-in #panel-body{animation:flipIn .38s cubic-bezier(.22,1,.36,1);}
 @keyframes flipIn{from{transform:rotateX(72deg); opacity:0;} to{transform:none; opacity:1;}}
 .p-lead{font-size:13.5px; line-height:1.75; color:var(--ink-soft); margin:8px 0 14px;}
+.tv-wrap{position:relative; border-radius:14px; overflow:hidden; background:#05070b;
+  border:1px solid var(--ctl-line); box-shadow:0 14px 40px rgba(0,0,0,.42); margin:2px 0 12px;}
+.tv-video{display:block; width:100%; aspect-ratio:16/9; height:auto; background:#05070b;}
+.tv-meta{display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;}
 .p-lead strong{color:var(--ink);}
 .p-sec{font-size:11px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; margin:16px 0 8px;}
 .chiprow{display:flex; flex-wrap:wrap; gap:7px;}
@@ -1471,6 +1475,7 @@ const Audio8 = {
     src.start(t0); src.stop(t0+dur);
   },
   blip(){ this.tone(880,660,.09,"sine",.10); },
+  tvOn(){ this.tone(1600,120,.14,"square",.045); this.noise(.16,.09,2200,9000); this.tone(70,42,.22,"sine",.16,.04); },
   hoverBlip(){ this.tone(1320,1560,.05,"sine",.035); },
   lampClick(){ this.noise(.04,.2,2600); this.tone(140,90,.12,"triangle",.22); },
   whoosh(){ this.noise(.32,.10,300,3200); },
@@ -1851,6 +1856,35 @@ function initThree(){
   const ant=box(.015,.34,.015,M(0x9a9aa2,.4,.7)); ant.position.set(.2,.42,0); ant.rotation.z=-.3; radioG.add(ant);
   scene.add(radioG);
 
+  /* ---- 电视柜 + 电视（点它放短片） ---- */
+  const tvG=new THREE.Group(); tvG.position.set(-2.26,0,-4.04);
+  const tvWood=M(0x6f4a30,.78);
+  const tvCab=box(1.32,.52,.5,tvWood); tvCab.position.y=.26; tvG.add(tvCab);
+  [-1,1].forEach(s=>{
+    const dm=box(.58,.42,.02,M(0x7d5436,.7)); dm.position.set(s*.32,.27,.252); tvG.add(dm);
+    const kn=new THREE.Mesh(new THREE.SphereGeometry(.024,10,8),M(0xd8b98a,.35,.75));
+    kn.position.set(s*.075,.27,.268); tvG.add(kn);
+  });
+  const tvBody=box(.95,.72,.56,M(0xd8cbb4,.72,.04)); tvBody.position.y=.88; tvG.add(tvBody);
+  const tvBezel=box(.87,.64,.03,M(0x24252b,.55,.25)); tvBezel.position.set(0,.9,.285); tvG.add(tvBezel);
+  const tvCv=document.createElement("canvas"); tvCv.width=768; tvCv.height=576;
+  const tvCtx=tvCv.getContext("2d");
+  const tvTex=new THREE.CanvasTexture(tvCv); tvTex.encoding=THREE.sRGBEncoding;
+  const tvScreen=new THREE.Mesh(new THREE.PlaneGeometry(.74,.55),new THREE.MeshBasicMaterial({map:tvTex}));
+  tvScreen.position.set(0,.91,.303); tvG.add(tvScreen);
+  [-1,1].forEach(s=>{
+    const a=box(.014,.42,.014,M(0x9a9aa2,.4,.7)); a.position.set(s*.06,1.42,0); a.rotation.z=-s*.5; tvG.add(a);
+    const ft=box(.1,.05,.3,M(0x1b1c21,.7)); ft.position.set(s*.3,.525,0); tvG.add(ft);
+  });
+  const tvLed=new THREE.Mesh(new THREE.SphereGeometry(.014,8,8),
+    new THREE.MeshStandardMaterial({color:0xff5a4a,emissive:0xff3b28,emissiveIntensity:1.2}));
+  tvLed.position.set(.36,.56,.262); tvG.add(tvLed);
+  scene.add(tvG);
+  room.tvScreen=tvScreen; room.tvBody=tvBody; room.tvBezel=tvBezel; room.tvCab=tvCab; room.tvG=tvG; room.tvTex=tvTex; room.tvCv=tvCv; room.tvCtx=tvCtx; room.tvLed=tvLed;
+  const tvLight=new THREE.PointLight(0x8ec4ff,.3,2.6,2);
+  tvLight.position.set(-2.26,1.0,-3.5); scene.add(tvLight); room.tvLight=tvLight;
+  tvPaint(tvPoster ? "idle" : "off");   // 房间是懒加载的，海报可能早于这里就绪
+
   /* ---- 猫（低多边形，会呼吸、偶尔散步） ---- */
   const catG=new THREE.Group();
   const catMat=M(0x3a3a42,.9);
@@ -1918,13 +1952,16 @@ function initThree(){
     ()=>toggleLamp(), null);
   addHot("radio","收音机 · 放点音乐",[rbody],V3(2.6,1.0,-3.55),
     ()=>toggleMusic(), null);
+  addHot("tv","电视 · 看我的短片",[tvScreen,tvBody,tvBezel],V3(-2.26,1.18,-3.95),
+    h=>{ Audio8.tvOn(); openPanel("reel",h.anchor); flyTo(h.fly,1500); },
+    {yaw:.08,pitch:.13,radius:2.5,tx:-2.26,ty:1.0,tz:-3.9});
   addHot("cat","猫 · 打个招呼",[cbody,chead],V3(.9,.5,-1.1),
     ()=>{ Audio8.meow();
       tween({dur:600,ease:easeOut,onU:e=>{room.catHead.rotation.z=-Math.sin(e*Math.PI)*.5;}});
       toast("喵～（它接受了这个招呼）"); }, null);
 
   /* 指引点 */
-  [["monitor"],["book"],["frames"],["door"],["window"]].forEach(([id])=>{
+  [["monitor"],["tv"],["book"],["frames"],["door"],["window"]].forEach(([id])=>{
     const h=interact.find(x=>x.id===id);
     const el=document.createElement("div"); el.className="dot";
     $("#dots").appendChild(el);
@@ -1932,7 +1969,7 @@ function initThree(){
   });
 
   /* 让热点物件带一点暖色自发光，黑暗里也能被看见（猫除外——它要保持猫样） */
-  interact.forEach(h=>{ if(h.id==="cat") return;
+  interact.forEach(h=>{ if(h.id==="cat"||h.id==="tv") return;
     h.objects.forEach(o=>{
       if(o.material && o.material.isMeshStandardMaterial && o.material.emissive && o.material.emissive.getHex()===0){
         o.material.emissive.setHex(0xffc98a); o.material.emissiveIntensity=.07;
@@ -2070,9 +2107,77 @@ const PANELS={
           <b>${s.name}</b><span>${s.note}</span></a>`).join("")+
         `<p class="p-lead" style="margin-top:14px; font-size:12px; color:var(--muted)">${CONFIG.footer}</p>`;
     }
+  },
+  reel:{
+    title:"电视", sub:"短片《一扇门，开成一间屋子》· 30″", ico:ICONS.projects,
+    html(){
+      const src=innerWidth<=820?"vendor/reel/reel-720.mp4":"vendor/reel/reel-1080.mp4";
+      return `<div class="tv-wrap"><video id="tvVideo" class="tv-video" playsinline controls
+          preload="auto" poster="vendor/reel/poster.jpg" src="${src}"
+          aria-label="个人短片《一扇门，开成一间屋子》，30 秒，含配乐"></video></div>
+        <div class="tv-meta"><span class="chip">30 秒</span><span class="chip">60 fps</span><span class="chip">纯代码</span><span class="chip">120 BPM</span></div>
+        <p class="p-lead">整支片子没有剪辑软件参与 —— 一个 HTML 文件逐帧算出来，音轨是代码合成的。
+          十个场景，首帧和末帧是同一条线，所以能一直循环。</p>`;
+    }
   }
 };
-let panelName=null;
+/* ---------------- 电视屏幕 ---------------- */
+let tvPoster=null, tvLastT=0;
+function tvPaint(mode){
+  const r=room; if(!r.tvCtx) return;
+  const c=r.tvCv, x=r.tvCtx, w=c.width, h=c.height;
+  x.fillStyle="#05070b"; x.fillRect(0,0,w,h);
+  if(tvPoster){
+    const s=Math.max(w/tvPoster.width,h/tvPoster.height);
+    const dw=tvPoster.width*s, dh=tvPoster.height*s;
+    x.globalAlpha=mode==="off"?.3:1;
+    x.drawImage(tvPoster,(w-dw)/2,(h-dh)/2,dw,dh);
+    x.globalAlpha=1;
+  }
+  x.fillStyle="rgba(0,0,0,.20)";
+  for(let y=0;y<h;y+=3) x.fillRect(0,y,w,1);
+  const g=x.createRadialGradient(w/2,h/2,h*.18,w/2,h/2,h*.8);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.55)");
+  x.fillStyle=g; x.fillRect(0,0,w,h);
+  if(mode!=="on"){
+    x.save(); x.translate(w/2,h/2);
+    x.save();
+    x.shadowColor="rgba(0,0,0,.7)"; x.shadowBlur=18; x.shadowOffsetY=6;
+    x.strokeStyle="rgba(255,255,255,.92)"; x.lineWidth=7;
+    x.beginPath(); x.arc(0,0,88,0,6.283); x.stroke();
+    x.fillStyle="#fff"; x.beginPath(); x.moveTo(-26,-34); x.lineTo(46,0); x.lineTo(-26,34); x.closePath(); x.fill();
+    x.restore();
+    x.restore();
+  }
+  r.tvTex.needsUpdate=true;
+}
+(function loadTvPoster(){
+  const img=new Image();
+  img.onload=()=>{ tvPoster=img; tvPaint("idle"); };
+  img.onerror=()=>tvPaint("idle");
+  img.src="vendor/reel/poster.jpg";
+})();
+function tvResume(){
+  const v=document.getElementById("tvVideo"); if(!v) return;
+  const go=()=>{ try{ if(tvLastT>.4 && tvLastT<v.duration-1) v.currentTime=tvLastT; }catch(e){}
+    v.play().catch(()=>{}); };
+  if(v.readyState>=1) go(); else v.addEventListener("loadedmetadata",go,{once:true});
+}
+function tvFreeze(){
+  const v=document.getElementById("tvVideo"); if(!v) return;
+  tvLastT=v.currentTime||0;
+  try{
+    const r=room, c=r.tvCv, x=r.tvCtx, w=c.width, h=c.height;
+    const vw=v.videoWidth||16, vh=v.videoHeight||9;
+    const s=Math.max(w/vw,h/vh), dw=vw*s, dh=vh*s;
+    x.fillStyle="#05070b"; x.fillRect(0,0,w,h);
+    x.drawImage(v,(w-dw)/2,(h-dh)/2,dw,dh);
+    x.fillStyle="rgba(0,0,0,.20)"; for(let y=0;y<h;y+=3) x.fillRect(0,y,w,1);
+    r.tvTex.needsUpdate=true;
+  }catch(e){}
+  v.pause();
+}
+let panelName=null, panelOpenedAt=0;
 function projectToScreen(v){
   const p=v.clone().project(camera);
   return {x:(p.x*.5+.5)*innerWidth, y:(-p.y*.5+.5)*innerHeight, behind:p.z>1};
@@ -2091,10 +2196,11 @@ function openPanel(name,anchor){
     Audio8.flip();
     const flip=$("#panel-flip");
     flip.classList.add("flip-out");
-    setTimeout(()=>{ fill(); flip.classList.remove("flip-out"); flip.classList.add("flip-in");
+    setTimeout(()=>{ fill(); if(name==="reel") tvResume(); flip.classList.remove("flip-out"); flip.classList.add("flip-in");
       setTimeout(()=>flip.classList.remove("flip-in"),400); },300);
   } else {
     fill();
+    if(name==="reel") tvResume();
     // transform-origin 是相对元素自身的坐标：把屏幕坐标换算成面板内坐标，面板就从被点物件那里"长"出来
     const w=panel.offsetWidth||460, hgt=Math.min(panel.offsetHeight||400,640);
     let ox, oy;
@@ -2106,18 +2212,22 @@ function openPanel(name,anchor){
     panel.style.transformOrigin=`${ox}px ${oy}px`;
     panel.classList.add("on"); $("#scrim").classList.add("on");
   }
+  panelOpenedAt=Date.now();
   panelName=name;
   hideDots();
 }
 function closePanel(){
   if(!panelName) return;
+  if(panelName==="reel") tvFreeze();
   panelName=null;
   $("#panel").classList.remove("on"); $("#scrim").classList.remove("on");
   if(room.doorPivot && room.doorPivot.rotation.y!==0)
     tween({dur:700,ease:easeIO,onU:e=>{room.doorPivot.rotation.y=lerp(room.doorPivot.rotation.y,0,e);}});
 }
 $("#panel-close").addEventListener("click",()=>{Audio8.blip();closePanel();});
-$("#scrim").addEventListener("click",closePanel);
+// 手机上「点物件 → 面板立刻弹出」时，浏览器补发的那一下 click 会落在刚出现的遮罩上，
+// 于是面板刚开就被关掉。给一个很短的窗口把这一下吃掉。
+$("#scrim").addEventListener("click",()=>{ if(Date.now()-panelOpenedAt<450) return; closePanel(); });
 
 /* ---------------- Toast ---------------- */
 let toastTimer=null;
@@ -2357,6 +2467,7 @@ function animate(){
 
 /* ---------------- 启动 / 入场 ---------------- */
 function resize(){
+  if(!camera||!renderer) return;   // 房间是懒加载的，缩放可能先到
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 }
@@ -4212,7 +4323,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
 })();
 
 /* 测试探针用 */
-window.__room={openPanel,toggleDay,toggleLamp,toggleMusic,interact,applyDayNight,get cam(){return cam;},camera,
+window.__room={openPanel,toggleDay,toggleLamp,toggleMusic,interact,applyDayNight,get cam(){return cam;},get camera(){return camera;},get sceneRef(){return scene;},
   Audio8,tween,easeOut,easeIO,lerp,V3,flyTo,toast,
   get room(){return room;},
   get scene(){try{let o=interact[0].objects[0];while(o.parent)o=o.parent;return o;}catch(e){return null;}}};
