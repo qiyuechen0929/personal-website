@@ -13,3 +13,6 @@ Thumbs.db
 
 # 自动同步任务产生的日志与备份
 .sync-backups/
+
+# 短片渲染工程（本地工具，产物在 vendor/reel/）
+/reel/

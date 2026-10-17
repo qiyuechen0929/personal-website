@@ -158,6 +158,37 @@ function serveStatic(req, res, urlPath) {
     if (req.headers["if-none-match"] === etag) {
       return res.writeHead(304, { etag, "cache-control": cc, vary: "accept-encoding", "access-control-allow-origin": "*" }).end();
     }
+    // 音视频必须支持 Range（206），否则 iOS Safari 直接不给播
+    const mt = MIME[ext] || "";
+    if (/^(video|audio)\//.test(mt)) {
+      const rng = req.headers.range;
+      if (rng) {
+        const m = /^bytes=(\d*)-(\d*)$/.exec(String(rng).trim());
+        const size = st.size;
+        if (m) {
+          let start = m[1] ? parseInt(m[1], 10) : 0;
+          let end = m[2] ? parseInt(m[2], 10) : size - 1;
+          if (m[1] === "" && m[2]) { start = Math.max(0, size - parseInt(m[2], 10)); end = size - 1; }
+          if (isNaN(start) || isNaN(end) || start > end || start >= size) {
+            return res.writeHead(416, { "content-range": "bytes */" + size, "accept-ranges": "bytes" }).end();
+          }
+          end = Math.min(end, size - 1);
+          res.writeHead(206, {
+            "content-type": mt,
+            "content-length": end - start + 1,
+            "content-range": "bytes " + start + "-" + end + "/" + size,
+            "accept-ranges": "bytes",
+            "cache-control": cc,
+            etag,
+            "access-control-allow-origin": "*"
+          });
+          if (req.method === "HEAD") return res.end();
+          return fs.createReadStream(file, { start, end }).pipe(res);
+        }
+      }
+      // 没有 Range 也给一个完整响应，但告诉客户端可以按块取
+      res.setHeader && res.setHeader("accept-ranges", "bytes");
+    }
     fs.readFile(file, (e3, buf) => {
       if (e3) { res.writeHead(500).end("read error"); return; }
       let enc = null;
