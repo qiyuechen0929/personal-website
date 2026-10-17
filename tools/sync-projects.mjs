@@ -68,10 +68,12 @@ const card = (o) => `    { name: ${jsStr(o.name)}, tag: ${jsStr(o.tag)}, desc: $
 
 /* ---------- 2) 组装卡片 ---------- */
 const out = [];
+const names = [];   // 与 out 一一对应，用来和短片快照核对
 for (const c of cfg.curated || []) {
-  if (!c.repo) { out.push(card({ name: c.name, tag: c.tag, desc: c.desc, link: c.link })); continue; }
+  if (!c.repo) { names.push(c.name); out.push(card({ name: c.name, tag: c.tag, desc: c.desc, link: c.link })); continue; }
   const r = byName.get(c.repo);
-  if (!r) { log(`警告：GitHub 上没找到 ${c.repo}（已删除或改名？）—— 该卡片保留手写内容`); out.push(card(c)); continue; }
+  if (!r) { log(`警告：GitHub 上没找到 ${c.repo}（已删除或改名？）—— 该卡片保留手写内容`); names.push(c.name || c.repo); out.push(card(c)); continue; }
+  names.push(c.name || r.name);
   out.push(card({
     name: c.name || r.name,
     tag: c.tag || r.language || 'Code',
@@ -87,12 +89,30 @@ if (cfg.autoAppend && cfg.autoAppend.enabled !== false) {
     .sort((a, b) => (b.stargazers_count - a.stargazers_count) || String(b.pushed_at).localeCompare(String(a.pushed_at)));
   for (const r of cands) {
     if (out.length >= (cfg.maxTotal || 8)) break;
+    names.push(r.name);
     out.push(card({ name: r.name, tag: r.language || 'Code', desc: realDesc(r), link: r.html_url }));
     log(`自动追加：${r.name}（⭐${r.stargazers_count}，${r.language || '—'}，更新于 ${String(r.pushed_at).slice(0, 10)}）`);
     appended++;
   }
 }
 log(`卡片合计 ${out.length} 张（手挑 ${(cfg.curated || []).length} + 自动追加 ${appended}，上限 ${cfg.maxTotal || 8}）`);
+
+/* ---------- 2.5) 短片快照核对 ----------
+   短片是烘焙好的像素，改不了。这里只负责「提醒」：
+   页面上的项目一旦和片子里的八个不一样，日志里喊一声，告诉你要重渲。 */
+const snap = cfg.reel && cfg.reel.projects;
+if (Array.isArray(snap) && snap.length) {
+  const same = names.length === snap.length && names.every((n, i) => n === snap[i]);
+  if (same) {
+    log(`短片快照一致：${snap.length} 个项目（${cfg.reel.file || 'vendor/reel/'}）`);
+  } else {
+    log('⚠️  短片和页面已经对不上了：');
+    log('   片子里：' + snap.join(' / '));
+    log('   页面上：' + names.join(' / '));
+    log('   → 要么重渲短片（reel/render30.mjs，改 T.projects 那 8 条），要么调 config 让顺序回到片子里那样。');
+    log('   → 页面照常更新，只是别让片子和下面的作品列表各说各话。');
+  }
+}
 
 /* ---------- 3) 生成新块 + 语法校验 ---------- */
 const block = '  projects: [\n' + out.join('\n') + '\n  ],';

@@ -5,18 +5,70 @@
   "logFile": ".sync-backups/sync.log",
   "backupDir": ".sync-backups",
   "maxTotal": 8,
-  "autoAppend": { "enabled": true, "minDescLen": 8 },
+  "autoAppend": {
+    "enabled": true,
+    "minDescLen": 8
+  },
   "exclude": [
     "Student-Score-Analysis-System-Based-on-C",
     "Clothing-Management-System-in-C",
     "Common-solutions-to-fix-missing-vision-when-integrating-DeepSeek-into-Codex"
   ],
   "curated": [
-    { "repo": "sini", "name": "似你 · Sini", "tag": "Flutter", "desc": "端侧优先的 AI 数字人格聊天 App：用聊天记录克隆 TA 的说话方式，语音克隆也在本地跑。" },
-    { "repo": "vision-bridge", "tag": "PowerShell", "desc": "给纯文本模型「装眼睛」：把剪贴板/截图自动交给视觉模型转成文字，再交回你的 AI。" },
-    { "repo": "MagnetRush", "tag": "HTML5", "desc": "纯 Canvas 写的赛车躲避小游戏：视觉特效、语音助手、技能系统、车库改装。" },
-    { "repo": "blender-heritage-scenes", "name": "古建场景生成", "tag": "Python", "desc": "AI 实时建模的低多边形中国古建场景：北京天坛 & 佛山祖庙，含昼夜与巡游视频。" },
-    { "repo": "WinCleanPro", "tag": "PowerShell", "desc": "轻量 Windows 清理工具：一次把系统垃圾扫干净，界面也是自己画的。" },
-    { "name": "这间书房", "tag": "WebGL", "desc": "你现在站着的地方。Three.js 手搓、零素材纯代码 —— 门后面就是它。", "link": "https://github.com/qiyuechen0929" }
-  ]
+    {
+      "repo": "sini",
+      "name": "似你 · Sini",
+      "tag": "Flutter",
+      "desc": "端侧优先的 AI 数字人格聊天 App：用聊天记录克隆 TA 的说话方式，语音克隆也在本地跑。"
+    },
+    {
+      "repo": "vision-bridge",
+      "tag": "PowerShell",
+      "desc": "给纯文本模型「装眼睛」：把剪贴板/截图自动交给视觉模型转成文字，再交回你的 AI。"
+    },
+    {
+      "repo": "MagnetRush",
+      "tag": "HTML5",
+      "desc": "纯 Canvas 写的赛车躲避小游戏：视觉特效、语音助手、技能系统、车库改装。"
+    },
+    {
+      "repo": "blender-heritage-scenes",
+      "name": "古建场景生成",
+      "tag": "Python",
+      "desc": "AI 实时建模的低多边形中国古建场景：北京天坛 & 佛山祖庙，含昼夜与巡游视频。"
+    },
+    {
+      "repo": "WinCleanPro",
+      "tag": "PowerShell",
+      "desc": "轻量 Windows 清理工具：一次把系统垃圾扫干净，界面也是自己画的。"
+    },
+    {
+      "name": "这间书房",
+      "tag": "WebGL",
+      "desc": "你现在站着的地方。Three.js 手搓、零素材纯代码 —— 门后面就是它。",
+      "link": "https://github.com/qiyuechen0929"
+    },
+    {
+      "repo": "personal-website",
+      "tag": "HTML"
+    },
+    {
+      "repo": "retro-desktop-blog",
+      "tag": "JavaScript"
+    }
+  ],
+  "_reel_说明": "短片《一扇门，开成一间屋子》里出现的八张卡片（画面是烘焙好的像素，改不了）。下面 reel.projects 是那份快照：同步脚本每次跑都会核对，对不上就在日志里喊「短片需要重渲」。",
+  "reel": {
+    "file": "vendor/reel/reel-1080.mp4",
+    "projects": [
+      "似你 · Sini",
+      "vision-bridge",
+      "MagnetRush",
+      "古建场景生成",
+      "WinCleanPro",
+      "这间书房",
+      "personal-website",
+      "retro-desktop-blog"
+    ]
+  }
 }
