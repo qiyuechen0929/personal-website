@@ -1311,6 +1311,9 @@ a.card{text-decoration:none; color:inherit; display:block;}
     <button class="tbtn glass" id="btn-home" title="回到初始视角" aria-label="重置视角">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
     </button>
+    <button class="tbtn glass" id="btn-shot" title="拍一张名片（存成图片）" aria-label="拍名片">
+      <svg viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.2-1.8h5.2L14.8 6h1.7A2.5 2.5 0 0 1 19 8.5v8A2.5 2.5 0 0 1 16.5 19h-11A2.5 2.5 0 0 1 3 16.5z"/><circle cx="11" cy="12.5" r="3.4"/></svg>
+    </button>
     <button class="tbtn glass" id="btn-help" title="玩法" aria-label="帮助">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.8 2.8 0 0 1 5.5.8c0 1.8-2.6 2.2-2.6 3.8"/><path d="M12 17h.01"/></svg>
     </button>
@@ -1323,6 +1326,7 @@ a.card{text-decoration:none; color:inherit; display:block;}
   <div><b>滚轮 / 双指</b><span>拉近推远</span></div>
   <div><b>点击发光物件</b><span>看看里面藏着什么</span></div>
   <div><b>点窗户</b><span>让时间快进到白天</span></div>
+  <div><b>右上角相机</b><span>把此刻这间屋子存成一张名片</span></div>
   <div><b>点台灯</b><span>开关灯</span></div>
   <div><b>点猫</b><span>试试看</span></div>
   <div><kbd>1</kbd>–<kbd>4</kbd> <kbd>Esc</kbd> <kbd>M</kbd><span>快捷键</span></div>
@@ -1476,6 +1480,7 @@ const Audio8 = {
   },
   blip(){ this.tone(880,660,.09,"sine",.10); },
   tvOn(){ this.tone(1600,120,.14,"square",.045); this.noise(.16,.09,2200,9000); this.tone(70,42,.22,"sine",.16,.04); },
+  shutter(){ this.noise(.06,.18,1400,6000); this.tone(2200,1600,.05,"square",.03,.06); },
   hoverBlip(){ this.tone(1320,1560,.05,"sine",.035); },
   lampClick(){ this.noise(.04,.2,2600); this.tone(140,90,.12,"triangle",.22); },
   whoosh(){ this.noise(.32,.10,300,3200); },
@@ -1637,7 +1642,7 @@ function drawTerm(t){
 
 /* ---------------- 场景搭建 ---------------- */
 function initThree(){
-  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"low-power"});
+  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"low-power",preserveDrawingBuffer:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=true;
@@ -2236,6 +2241,84 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),2200);
 }
 
+/* ---------------- 拍名片 ---------------- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function makePostcard(){
+  if (!renderer || !scene || !camera) { toast("还没进屋，先把门推开"); return; }
+  renderer.render(scene, camera);
+  let shot;
+  try { shot = renderer.domElement.toDataURL("image/png"); }
+  catch (e) { toast("这张没拍成，换台设备试试"); return; }
+
+  const W = 1080, H = 1230, PH = 810;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = "#0A0B12"; x.fillRect(0, 0, W, H);
+
+  const img = new Image();
+  img.onload = () => {
+    // 照片区：按 4:3 cover 裁切，保留整条视线
+    const ratio = W / PH;
+    let sw = img.width, sh = img.height;
+    if (sw / sh > ratio) sw = sh * ratio; else sh = sw / ratio;
+    const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+    x.drawImage(img, sx, sy, sw, sh, 0, 0, W, PH);
+
+    // 顶部一行小字（压在画面上）
+    x.fillStyle = "rgba(255,255,255,.55)";
+    x.font = "500 17px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText("CHENQIYUE 的书房 · 一间会呼吸的屋子", 56, 68);
+
+    // 底部信息块
+    const top = PH + 34;
+    x.fillStyle = "#0A84FF";
+    x.fillRect(56, top, 96, 4);
+
+    const now = new Date();
+    const stamp = now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) +
+                  " " + pad2(now.getHours()) + ":" + pad2(now.getMinutes());
+
+    x.fillStyle = "#FFFFFF";
+    x.font = "800 66px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText("陈启粤", 56, top + 104);
+
+    x.fillStyle = "rgba(255,255,255,.5)";
+    x.font = "500 19px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText("C H E N Q I Y U E   ·   软件工程学生   ·   中国 · 东莞", 56, top + 146);
+
+    x.fillStyle = "rgba(255,255,255,.82)";
+    x.font = "500 26px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText("一扇门，开成一间屋子。", 56, top + 208);
+
+    x.fillStyle = "rgba(255,255,255,.38)";
+    x.font = "400 19px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText(stamp + " · 在这间屋子里拍的", 56, top + 262);
+
+    x.fillStyle = "#0A84FF";
+    x.font = "700 21px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+    x.fillText("chenqiyue.ccwu.cc", 56, top + 306);
+
+    try {
+      const n = document.querySelector("#visit-pill .vc-num")?.textContent?.trim();
+      if (n && n !== "···") {
+        x.fillStyle = "rgba(255,255,255,.32)";
+        x.font = "400 17px 'PingFang SC','Microsoft YaHei',system-ui,sans-serif";
+        const s = "你是第 " + n + " 位推门进来的人";
+        x.fillText(s, W - 56 - x.measureText(s).width, top + 306);
+      }
+    } catch (e) {}
+
+    const a = document.createElement("a");
+    a.download = "chenqiyue-postcard-" + now.getTime() + ".png";
+    a.href = c.toDataURL("image/png");
+    a.click();
+    toast("名片已存到下载文件夹 · 拿去发吧");
+  };
+  img.onerror = () => toast("这张没拍成");
+  img.src = shot;
+}
+
 /* ---------------- 指引点 ---------------- */
 let dotsHidden=false;
 function hideDots(){
@@ -2337,6 +2420,7 @@ function handleClick(x,y){
 $("#btn-day").addEventListener("click",toggleDay);
 $("#btn-music").addEventListener("click",toggleMusic);
 $("#btn-home").addEventListener("click",()=>{ Audio8.whoosh(); closePanel(); flyTo(HOME,1300); });
+$("#btn-shot").addEventListener("click",()=>{ Audio8.init(); Audio8.shutter(); setTimeout(makePostcard,120); });
 $("#btn-help").addEventListener("click",()=>$("#help").classList.toggle("on"));
 addEventListener("keydown",e=>{
   if(e.key==="Escape"){ closePanel(); $("#help").classList.remove("on"); }
