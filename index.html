@@ -171,6 +171,45 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer;}
 .book:last-child{border-bottom:0;}
 .book em{font-style:normal; color:var(--accent-ink); font-weight:600; flex:0 0 auto;}
 .book span{color:var(--ink-soft); font-size:12px; margin-left:auto; text-align:right;}
+/* 便签墙 */
+.note-list{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px; max-height:34vh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.note-card{
+  padding:10px 12px 9px; border-radius:10px; background:#efe6c4; color:#3a3323;
+  box-shadow:0 1px 0 rgba(0,0,0,.06), 0 6px 14px -10px rgba(0,0,0,.5);
+  transform:rotate(-.35deg); animation:noteIn .32s cubic-bezier(.34,1.4,.64,1) both;
+}
+.note-card:nth-child(even){transform:rotate(.4deg); background:#e6e8d2;}
+.note-card b{display:block; font-size:13px; line-height:1.6; font-weight:500; word-break:break-word;}
+.note-card span{display:block; font-size:10.5px; color:#8a8168; margin-top:5px; letter-spacing:.02em;}
+@keyframes noteIn{from{opacity:0; transform:translateY(6px) rotate(-1deg) scale(.97);}}
+.note-empty{font-size:12.5px; color:var(--muted); padding:14px 4px; text-align:center;}
+.note-form{display:flex; flex-direction:column; gap:8px; padding-top:12px; border-top:1px dashed var(--ctl-line);}
+.note-form textarea{
+  width:100%; min-height:56px; resize:none; padding:10px 12px; border-radius:11px; font:inherit; font-size:13px;
+  background:var(--ctl); color:var(--ink); border:1px solid var(--ctl-line); outline:none; line-height:1.55;
+}
+.note-form textarea:focus{border-color:var(--accent);}
+.note-row{display:flex; gap:8px; align-items:center;}
+.note-row input{
+  flex:1 1 auto; min-width:0; padding:8px 11px; border-radius:10px; font:inherit; font-size:12.5px;
+  background:var(--ctl); color:var(--ink); border:1px solid var(--ctl-line); outline:none;
+}
+.note-row input:focus{border-color:var(--accent);}
+.note-row button{
+  flex:0 0 auto; padding:8px 16px; border-radius:10px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+  background:var(--accent); color:#fff; border:0; transition:transform .18s, opacity .2s;
+}
+.note-row button:hover{transform:translateY(-1px);}
+.note-row button:disabled{opacity:.5; cursor:default; transform:none;}
+.note-foot{display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted);}
+/* 抽屉 */
+.drw{display:block; margin:0 0 12px; border-radius:12px; overflow:hidden; background:var(--ctl); border:1px solid var(--ctl-line);}
+.drw img{display:block; width:100%; height:auto; background:#0b0d12;}
+.drw div{padding:9px 12px 11px;}
+.drw b{font-size:13px; display:flex; align-items:baseline; gap:8px;}
+.drw b i{font-style:normal; font-size:10.5px; color:var(--muted); margin-left:auto; font-weight:400;}
+.drw p{font-size:12px; color:var(--muted); line-height:1.6; margin-top:3px;}
+.drw-empty{font-size:12px; color:var(--muted); line-height:1.7; padding:10px 2px; border-top:1px dashed var(--ctl-line); margin-top:6px;}
 .soc{
   display:flex; align-items:center; gap:11px; padding:10px 13px; border-radius:13px; margin-bottom:8px;
   text-decoration:none; color:inherit; background:var(--ctl); border:1px solid var(--ctl-line);
@@ -1433,6 +1472,14 @@ a.card{text-decoration:none; color:inherit; display:block;}
 const CONFIG = {
   name: "ChenQiyue",
   tagline: "把喜欢的东西，都放进这间屋子",
+  drawer: [
+    { name:"十个场景的分镜", year:"2026.10", img:"/vendor/media/drawer-1.jpg",
+      desc:"先把整条片子拆成十格，一格三秒。后来每一格都改过，有的改了四五遍。" },
+    { name:"第一版只有 15 秒", year:"2026.10", img:"/vendor/media/drawer-2.jpg",
+      desc:"15 秒讲不完想说的事，节奏赶得像在报菜名。做完就推翻重排了。" },
+    { name:"那扇门", year:"2026.10", img:"/vendor/media/drawer-3.jpg",
+      desc:"整条片子从这里开始 —— 一扇门开成一间屋子。这一版 30 秒，留了下来。" }
+  ],
   about: {
     lead: "我是 <strong>ChenQiyue</strong>，一名软件工程学生。平时比较喜欢折腾 AI、开源、Web 和各种新鲜技术。",
     bio: "看到一个有意思的想法，我的第一反应通常不是「有没有必要」，而是 —— <strong>「这玩意儿能不能做出来？」</strong> 我不太喜欢只停留在「听说过」「研究过」，比起看教程，更想直接上手把东西跑起来，在不断踩坑的过程中搞明白它到底怎么回事。折腾的结果并不总是成功：有些变成了能跑的东西，有些变成了一堆代码，还有一些只证明了「这个想法确实不太行」——但我觉得这也挺有意思。",
@@ -1850,6 +1897,23 @@ function initThree(){
     const leg=box(.09,.9,.09,wood); leg.position.set(x,.45,z); deskG.add(leg);
   });
   const drawer=box(.9,.5,1.1,M(0x8a5d3c,.72)); drawer.position.set(1.05,.63,0); deskG.add(drawer);
+  room.drawer=drawer;
+  // 桌上那叠便利贴：最新的一张会显示在这里
+  const nCv=makeCanvas(256,256), nCtx=nCv.getContext("2d");
+  const nTex=new THREE.CanvasTexture(nCv); nTex.anisotropy=4;
+  const notePad=new THREE.Mesh(new THREE.PlaneGeometry(.4,.4),
+    new THREE.MeshStandardMaterial({map:nTex,roughness:.92,metalness:0}));
+  notePad.rotation.x=-Math.PI/2; notePad.rotation.z=.16;
+  notePad.position.set(-.98,1.0,-2.98);
+  scene.add(notePad);
+  room.noteCv=nCv; room.noteCtx=nCtx; room.noteTex=nTex; room.notePad=notePad;
+  [[-.006,-.07,0xe3d9a6],[-.012,.1,0xd7dcb4]].forEach(([y,rot,cl])=>{
+    const q=new THREE.Mesh(new THREE.PlaneGeometry(.42,.42), M(cl,.95));
+    q.rotation.x=-Math.PI/2; q.rotation.z=rot;
+    q.position.set(-.96,.999+y,-2.96+y*2);
+    scene.add(q);
+  });
+  fnPaintNote("留给下一个人一句话。");
   for(let i=0;i<3;i++){const kn=box(.12,.03,.03,M(0xd8b98a,.4,.6)); kn.position.set(1.05,.8-i*.17,.56); deskG.add(kn);}
   scene.add(deskG);
 
@@ -2079,6 +2143,13 @@ function initThree(){
   addHot("tv","电视 · 看我的短片",[tvScreen,tvBody,tvBezel],V3(-2.26,1.18,-3.95),
     h=>{ Audio8.tvOn(); openPanel("reel",h.anchor); flyTo(h.fly,1500); },
     {yaw:.08,pitch:.13,radius:2.5,tx:-2.26,ty:1.0,tz:-3.9});
+  addHot("notes","便签墙 · 留一句话",[room.notePad],V3(-1.0,1.03,-2.99),
+    h=>flyThen(h,()=>openPanel("notes",h.anchor)),
+    {yaw:.5,pitch:.34,radius:2.5,tx:-.95,ty:1.15,tz:-2.9});
+  addHot("drawer","抽屉 · 过程稿",[room.drawer],V3(1.45,.63,-2.78),
+    h=>{ Audio8.flip(); drawerGoal=.26;
+      flyThen(h,()=>openPanel("drawer",h.anchor)); },
+    {yaw:-.3,pitch:.5,radius:3.05,tx:1.3,ty:.85,tz:-3.0});
   addHot("cat","猫 · 打个招呼",[cbody,chead],V3(.9,.5,-1.1),
     ()=>{ Audio8.meow();
       tween({dur:600,ease:easeOut,onU:e=>{room.catHead.rotation.z=-Math.sin(e*Math.PI)*.5;}});
@@ -2243,6 +2314,32 @@ const PANELS={
         ${h.books.map(b=>`<div class="book"><em>${b.name}</em><span>${b.by}</span></div>`).join("")}`;
     }
   },
+  notes:{
+    title:"便签墙", sub:"桌上那叠便利贴", ico:ICONS.about,
+    html(){
+      return `<p class="p-lead">路过的人可以撕一张贴上去。最多 48 个字，贴完就留在这儿了。</p>
+        <div class="note-list" id="note-list"><div class="note-empty">正在把墙上的便签取下来…</div></div>
+        <div class="note-form">
+          <textarea id="note-text" maxlength="48" placeholder="写点什么，贴在墙上…"></textarea>
+          <div class="note-row">
+            <input id="note-name" maxlength="12" placeholder="留个名字（可不填）">
+            <button id="note-send">贴上去</button>
+          </div>
+          <div class="note-foot"><span id="note-total"></span><span id="note-count"></span></div>
+        </div>`;
+    },
+    after(){ notesWire(); }
+  },
+  drawer:{
+    title:"抽屉里", sub:"桌子右边那个抽屉", ico:ICONS.about,
+    html(){
+      const items = CONFIG.drawer || [];
+      return `<p class="p-lead">抽屉里没有成品，只有过程 —— 半成品的版本、被推翻的草稿，还有做到一半就停下的东西。</p>`
+        + items.map(d=>`<div class="drw"><img src="${d.img}" alt="${d.name}" loading="lazy">
+            <div><b>${d.name}<i>${d.year}</i></b><p>${d.desc}</p></div></div>`).join("")
+        + `<div class="drw-empty">还有几个抽屉是空的 —— 等哪天翻出来再往里丢。</div>`;
+    }
+  },
   contact:{
     title:"联系我", sub:"门一直虚掩着", ico:ICONS.contact,
     html(){
@@ -2336,6 +2433,7 @@ function openPanel(name,anchor){
     $("#panel-title").textContent=def.title;
     $("#panel-sub").textContent=def.sub;
     $("#panel-body").innerHTML=def.html();
+    if(def.after) setTimeout(()=>{ if(panelName===name) def.after(); },0);
   };
   if(panelName && panelName!==name){
     Audio8.flip();
@@ -2363,6 +2461,7 @@ function openPanel(name,anchor){
 }
 function closePanel(){
   if(!panelName) return;
+  if(panelName==="drawer") drawerGoal=0;
   if(panelName==="reel") tvFreeze();
   panelName=null;
   $("#panel").classList.remove("on"); $("#scrim").classList.remove("on");
@@ -2374,6 +2473,91 @@ $("#panel-close").addEventListener("click",()=>{Audio8.blip();closePanel();});
 // 于是面板刚开就被关掉。给一个很短的窗口把这一下吃掉。
 $("#scrim").addEventListener("click",()=>{ if(Date.now()-panelOpenedAt<450) return; closePanel(); });
 
+/* ---------------- 便签墙 ---------------- */
+function fnPaintNote(text){
+  const cv=room.noteCv, c=room.noteCtx; if(!cv||!c) return;
+  const W=cv.width, H=cv.height;
+  c.fillStyle="#ece2b4"; c.fillRect(0,0,W,H);
+  const g=c.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"rgba(255,255,255,.35)"); g.addColorStop(1,"rgba(160,140,80,.16)");
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  c.fillStyle="rgba(90,78,44,.30)"; c.fillRect(0,H-16,W,16);
+  c.save();
+  c.translate(0,H); c.scale(1,-1);       // 从屋子这边看过去是正的
+  c.fillStyle="#3b3423";
+  c.font='600 34px "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif';
+  c.textBaseline="top";
+  let line="", y=24, done=false;
+  for(const ch of String(text||"")){
+    if(c.measureText(line+ch).width>W-30 || line.length>=6){
+      c.fillText(line,W/2-c.measureText(line).width/2,y); line=ch; y+=44;
+      if(y>H-60){ done=true; break; }
+    } else line+=ch;
+  }
+  if(!done && line) c.fillText(line,W/2-c.measureText(line).width/2,y);
+  c.restore();
+  if(room.noteTex) room.noteTex.needsUpdate=true;
+}
+const NOTE_API="/api/notes";
+let noteTotal=0;
+const noteTime=(ts)=>{
+  const d=new Date(ts), now=Date.now(), diff=(now-ts)/1000;
+  if(diff<60) return "刚刚";
+  if(diff<3600) return Math.floor(diff/60)+" 分钟前";
+  if(diff<86400) return Math.floor(diff/3600)+" 小时前";
+  if(diff<86400*30) return Math.floor(diff/86400)+" 天前";
+  return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+};
+function noteCard(n){
+  const el=document.createElement("div"); el.className="note-card";
+  const b=document.createElement("b"); b.textContent=n.text;
+  const sp=document.createElement("span");
+  sp.textContent=(n.name?n.name+" · ":"")+noteTime(n.at);
+  el.appendChild(b); el.appendChild(sp); return el;
+}
+function notesWire(){
+  const list=$("#note-list"), text=$("#note-text"), name=$("#note-name"),
+        send=$("#note-send"), count=$("#note-count"), total=$("#note-total");
+  if(!list) return;
+  const setList=(notes)=>{
+    list.innerHTML="";
+    if(!notes.length){ const e=document.createElement("div"); e.className="note-empty";
+      e.textContent="墙上还是空的。第一张留给你。"; list.appendChild(e); return; }
+    notes.forEach(n=>list.appendChild(noteCard(n)));
+  };
+  fetch(NOTE_API+"?limit=40").then(r=>r.json()).then(d=>{
+    noteTotal=d.total||0;
+    setList(d.notes||[]);
+    if(total) total.textContent="墙上 "+noteTotal+" 张";
+  }).catch(()=>{
+    list.innerHTML='<div class="note-empty">留言板连不上，先看看屋子吧。</div>';
+  });
+  const left=()=>{ if(count) count.textContent="还能写 "+(48-(text.value||"").length)+" 字"; };
+  text.addEventListener("input",left); left();
+  const post=()=>{
+    const t=(text.value||"").trim();
+    if(!t){ text.focus(); return; }
+    send.disabled=true;
+    fetch(NOTE_API,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({text:t,name:(name.value||"").trim()})})
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.error){ toast(d.error); send.disabled=false; return; }
+        Audio8.flip();
+        if(list.querySelector(".note-empty")) list.innerHTML="";
+        list.insertBefore(noteCard(d.note),list.firstChild);
+        text.value=""; left(); send.disabled=false;
+        toast("贴上了，谢谢你来");
+        noteTotal=d.total||(noteTotal+1);
+        if(total) total.textContent="墙上 "+noteTotal+" 张";
+        try { fnPaintNote(d.note.text); } catch(e) {}
+      })
+      .catch(()=>{ toast("没贴上，网络好像不太顺"); send.disabled=false; });
+  };
+  send.addEventListener("click",post);
+  text.addEventListener("keydown",e=>{ if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)) post(); });
+}
+
 /* ---------------- Toast ---------------- */
 let toastTimer=null;
 function toast(msg){
@@ -2383,6 +2567,7 @@ function toast(msg){
 
 /* ---------------- 深夜模式 ---------------- */
 let lateNight=false, lateHud=null, lampHits=[], lampTimer=0, musicWasOn=false;
+let drawerGoal=0;
 
 function setLateNight(on){
   if(lateNight===on) return;
@@ -2737,6 +2922,11 @@ function animate(){
     room.steam.geometry.attributes.position.needsUpdate=true;
     room.steam.material.opacity=.3*(.4+.6*Math.sin(t*.5)*.5+.5);
   }
+  // 抽屉：慢慢拉开 / 收回去
+  if(room.drawer){
+    const dd=drawerGoal-room.drawer.position.z;
+    if(Math.abs(dd)>2e-4) room.drawer.position.z+=dd*.12;
+  }
   // 窗外下雨（深夜模式）
   if(room.rainMesh){
     const want = lateNight ? .95 : 0;
@@ -3012,6 +3202,8 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
     // 安装 3D 扩展包（挂钟 / 鱼缸 / 吉他 / 窗台气象 / 纸飞机 / 地球仪）
     try { if (window.__site3) window.__site3.install(); } catch (e) { console.error("[room-ext] 安装失败：", e); }
     try { if (window.__site6) window.__site6.install(); } catch (e) { console.error("[room-ext2] 安装失败：", e); }
+    // 把便签墙上最新的那张画到桌上
+    try { loadTopNote(); } catch (e) {}
     return true;
   }
 
@@ -3033,6 +3225,14 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
   }
 
   /* ---------------------- 进门：门厅 → 3D 空间 ---------------------- */
+  function loadTopNote(){
+    if(!room.noteTex) return;
+    fetch("/api/notes?limit=1").then(r=>r.json()).then(d=>{
+      const n=(d.notes||[])[0];
+      if(n && n.text && !/�/.test(n.text)) fnPaintNote(n.text);
+    }).catch(()=>{});
+  }
+
   function enterSpace(origin) {
     if (busy || mode === "space") return;
     enterImmersive();

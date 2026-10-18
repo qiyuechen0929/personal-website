@@ -26,6 +26,8 @@ const DATA_FILE = path.resolve(HERE, process.env.DATA_FILE || "./data/visits.jso
 const TLS_DIR = path.resolve(HERE, process.env.TLS_DIR || path.join(SITE_DIR, ".certs"));
 
 const MAX_SIDS = 20000, MAX_SAFE_SID = 64, KEEP_DAYS = 400;
+const NOTES_FILE = path.resolve(HERE, process.env.NOTES_FILE || "./data/notes.json");
+const NOTE_MAX = 48, NOTE_NAME_MAX = 12, NOTE_KEEP = 240;
 
 /* ------------------------- 计数数据 ------------------------- */
 let db = { pv: 0, sids: [], seen: {}, days: {} };
@@ -80,6 +82,64 @@ function hit(rawSid) {
   }
   trim(); saveSoon();
   return { ...stats(), isNew, mine: sid ? db.seen[sid] : 0 };
+}
+
+/* ------------------------- 便签墙 ------------------------- */
+let notes = [];
+function loadNotes() {
+  try {
+    const d = JSON.parse(fs.readFileSync(NOTES_FILE, "utf8"));
+    notes = Array.isArray(d) ? d.filter((n) => n && typeof n.text === "string") : [];
+    console.log(`[notes] 载入 ${notes.length} 张便签`);
+  } catch (e) { notes = []; }
+}
+function saveNotes() {
+  try {
+    fs.mkdirSync(path.dirname(NOTES_FILE), { recursive: true });
+    const tmp = NOTES_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(notes.slice(-NOTE_KEEP)));
+    fs.renameSync(tmp, NOTES_FILE);
+  } catch (e) { console.log("[notes] 写入失败 " + (e.code || e.message)); }
+}
+
+const NOTE_BLOCK = [
+  "操你", "草你", "傻逼", "傻b", "妈的", "你妈", "fuck", " shit", "bitch", "http://", "https://", "www.", ".com", ".cn", "加我", "私聊", "代做", "接单"
+];
+function noteReject(text, name) {
+  const t = (text || "").trim();
+  if (t.length < 1) return "写点什么吧";
+  if (t.length > NOTE_MAX) return `最多 ${NOTE_MAX} 个字`;
+  if ((name || "").length > NOTE_NAME_MAX) return `名字最多 ${NOTE_NAME_MAX} 个字`;
+  const low = (t + " " + (name || "")).toLowerCase();
+  for (const w of NOTE_BLOCK) if (low.includes(w)) return "这张便签没贴上去，换个说法试试";
+  if (/\uFFFD/.test(t)) return "这张便签没贴上去，换个说法试试";
+  if (/(.)\1{7,}/.test(t)) return "这张便签没贴上去，换个说法试试";
+  return "";
+}
+const noteHits = new Map();
+function noteLimited(ip) {
+  const now = Date.now();
+  const b = noteHits.get(ip) || { last: 0, hour: { n: 0, t: now } };
+  if (now - b.hour.t > 3600e3) { b.hour = { n: 0, t: now }; }
+  if (now - b.last < 20000) return "刚贴过一张，歇 20 秒再来";
+  if (b.hour.n >= 8) return "今天贴得够多了，明天再来";
+  return "";
+}
+function noteAdd(ip, text, name) {
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    text: String(text).trim().slice(0, NOTE_MAX),
+    name: String(name || "").trim().slice(0, NOTE_NAME_MAX),
+    at: Date.now()
+  };
+  notes.push(item);
+  if (notes.length > NOTE_KEEP) notes = notes.slice(-NOTE_KEEP);
+  saveNotes();
+  const b = noteHits.get(ip) || { last: 0, hour: { n: 0, t: Date.now() } };
+  b.last = Date.now(); b.hour.n++;
+  noteHits.set(ip, b);
+  if (noteHits.size > 5000) noteHits.clear();
+  return item;
 }
 
 /* ------------------------- 限流 ------------------------- */
@@ -226,6 +286,25 @@ function handle(req, res) {
     return res.end();
   }
   if (u.pathname === "/health") return sendJSON(res, { ok: true });
+  if (u.pathname === "/api/notes") {
+    if (limited(ip)) return sendJSON(res, { error: "too many requests" }, 429);
+    if (req.method === "GET" || req.method === "HEAD") {
+      const limit = Math.min(80, Math.max(1, Number(u.searchParams.get("limit")) || 60));
+      return sendJSON(res, { total: notes.length, notes: notes.slice(-limit).reverse() });
+    }
+    if (req.method !== "POST") return sendJSON(res, { error: "method" }, 405);
+    let body = "";
+    req.on("data", (c) => { body += c; if (body.length > 4096) req.destroy(); });
+    req.on("end", () => {
+      let data = {};
+      try { data = JSON.parse(body || "{}"); } catch (e) { return sendJSON(res, { error: "bad json" }, 400); }
+      const why = noteReject(data.text, data.name) || noteLimited(ip);
+      if (why) return sendJSON(res, { error: why }, 429);
+      const item = noteAdd(ip, data.text, data.name);
+      sendJSON(res, { ok: true, note: item, total: notes.length });
+    });
+    return;
+  }
   if (u.pathname === "/api/hit" || u.pathname === "/api/count") {
     if (limited(ip)) return sendJSON(res, { error: "too many requests" }, 429);
     if (req.method !== "GET" && req.method !== "HEAD") return sendJSON(res, { error: "method" }, 405);
@@ -245,6 +324,7 @@ function readCert() {
 }
 
 load();
+loadNotes();
 const initialCert = readCert();
 let tlsOn = false;
 let server;

@@ -1,0 +1,16 @@
+import { chromium } from "playwright";
+import fs from "node:fs";
+const b = await chromium.launch({ args: ["--use-gl=swiftshader","--enable-unsafe-swiftshader"] });
+const ctx = await b.newContext({ viewport: { width: 1512, height: 908 }, acceptDownloads: true });
+const p = await ctx.newPage();
+await p.goto("http://127.0.0.1:8792/", { waitUntil: "load" });
+await p.waitForTimeout(1200);
+await p.evaluate(() => document.getElementById("enter")?.click());
+await p.waitForTimeout(1400);
+await p.evaluate(() => document.getElementById("open-space")?.click());
+await p.waitForTimeout(4000);
+await p.evaluate(() => { const h = document.getElementById("hint"); if (h) h.style.display = "none"; });
+const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.click("#btn-shot")]);
+fs.copyFileSync(await dl.path(), "postcard-demo.png");
+console.log("ok", fs.statSync("postcard-demo.png").size);
+await b.close();
