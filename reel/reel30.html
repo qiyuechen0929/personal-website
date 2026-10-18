@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>陈启粤 — 一扇门，开成一间屋子</title>
+<style>
+  @font-face{font-family:R;src:url("fonts/NotoSansSC-Regular.otf");font-weight:400;font-display:block}
+  @font-face{font-family:R;src:url("fonts/NotoSansSC-Medium.otf");font-weight:500;font-display:block}
+  @font-face{font-family:R;src:url("fonts/NotoSansSC-Bold.otf");font-weight:700;font-display:block}
+  @font-face{font-family:R;src:url("fonts/NotoSansSC-Black.otf");font-weight:900;font-display:block}
+  html,body{margin:0;padding:0;background:#000;overflow:hidden}
+  canvas{display:block;width:1920px;height:1080px}
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+"use strict";
+
+/* ============================================================================
+   陈启粤 · 个人短片《一扇门，开成一间屋子》
+   1920×1080 · 120 BPM · 60 拍 · 30.000 s · 10 个场景 × 6 拍
+   画面全是时间 t 的纯函数：无 CSS 动画、无计时器、帧间不留状态。
+   ========================================================================== */
+
+const W = 1920, H = 1080;
+const BPM = 120, BEAT = 60 / BPM;         // 0.5 s
+const BEATS = 60, DUR = BEATS * BEAT;     // 30 s
+const BARS = 15;
+const SCENE = 6 * BEAT;                   // 每个场景 3 s
+const C = { ink: "#0A0B12", blue: "#0A84FF", paper: "#EFF4FA", white: "#FFFFFF" };
+const M = 72;
+const DOOR = { x: 700, y: 210, w: 520, h: 660 };
+const CX = W / 2, CY = H / 2;
+
+/* ---------------------------------- 数学 ---------------------------------- */
+const cl = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
+const p01 = (t, a, b) => cl((t - a) / (b - a));
+const lerp = (a, b, x) => a + (b - a) * x;
+const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * cl(x)));
+const inExpo = (x) => (x <= 0 ? 0 : Math.pow(2, 10 * cl(x) - 10));
+const inOutExpo = (x) => {
+  x = cl(x);
+  return x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2;
+};
+const smooth = (x) => { x = cl(x); return x * x * (3 - 2 * x); };
+const springy = (x, k = 8, w = 16) =>
+  x <= 0 ? 0 : 1 - Math.exp(-k * x) * (Math.cos(w * x) + (k / w) * Math.sin(w * x));
+const vel = (f, t, dt = 1 / 240) => (f(t + dt) - f(t - dt)) / (2 * dt);
+
+/* ---------------------------------- 画布 ---------------------------------- */
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+function reset() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.filter = "none";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.letterSpacing = "0px";
+  ctx.lineJoin = "miter";
+  ctx.lineCap = "butt";
+}
+const fill = (c) => { ctx.fillStyle = c; ctx.fillRect(0, 0, W, H); };
+const rect = (x, y, w, h, c, a = 1) => {
+  if (w <= 0 || h <= 0 || a <= 0.002) return;
+  ctx.globalAlpha = a; ctx.fillStyle = c; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
+};
+const outline = (x, y, w, h, c, lw = 1, a = 1) => {
+  ctx.globalAlpha = a; ctx.strokeStyle = c; ctx.lineWidth = lw;
+  ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw);
+  ctx.globalAlpha = 1;
+};
+const circle = (x, y, r, c, a = 1) => {
+  if (r <= 0.05 || a <= 0.002) return;
+  ctx.globalAlpha = a;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
+  ctx.globalAlpha = 1;
+};
+const square = (x, y, s, c, a = 1) => rect(x - s / 2, y - s / 2, s, s, c, a);
+const ring = (x, y, r, lw, c, a = 1) => {
+  if (r <= 0.05 || a <= 0.002) return;
+  ctx.globalAlpha = a;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.lineWidth = lw; ctx.strokeStyle = c; ctx.stroke();
+  ctx.globalAlpha = 1;
+};
+const line = (x1, y1, x2, y2, c, lw = 1, a = 1) => {
+  ctx.globalAlpha = a;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.stroke();
+  ctx.globalAlpha = 1;
+};
+
+function text(str, x, y, size, weight, color, o = {}) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px R`;
+  ctx.textAlign = o.align || "left";
+  ctx.letterSpacing = (o.tracking || 0) + "px";
+  ctx.globalAlpha = o.alpha == null ? 1 : o.alpha;
+  if (o.blur > 0.3) ctx.filter = `blur(${Math.min(o.blur, 12).toFixed(2)}px)`;
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+function measure(str, size, weight, tracking = 0) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px R`;
+  ctx.letterSpacing = tracking + "px";
+  const w = ctx.measureText(str).width;
+  ctx.restore();
+  return w;
+}
+function clip(x, y, w, h, fn) {
+  if (w <= 0 || h <= 0) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); fn(); ctx.restore();
+}
+// 逐字排布：不依赖 measureText 对 letterSpacing 的处理
+function glyphRuns(str, size, weight, track) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px R`;
+  ctx.letterSpacing = "0px";
+  const xs = [];
+  let x = 0;
+  for (const ch of str) { xs.push(x); x += ctx.measureText(ch).width + track; }
+  ctx.restore();
+  return { xs, width: x - track };
+}
+// 厚度的挤出字：同一笔画按斜向叠 N 层，最后一层是亮色
+function extrude(text, x, y, size, weight, depth, dark, light, a = 1) {
+  const n = Math.max(1, Math.round(depth / 2.5));
+  ctx.save();
+  ctx.font = `${weight} ${size}px R`;
+  ctx.letterSpacing = "0px";
+  ctx.textAlign = "left";
+  ctx.globalAlpha = a;
+  for (let i = n; i >= 1; i--) {
+    ctx.fillStyle = dark;
+    ctx.fillText(text, x + i * 1.6, y - i * 1.6);
+  }
+  ctx.fillStyle = light;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+// 沿圆周排字
+function ringText(str, cx, cy, r, size, rot, color, a = 1, tracking = 0) {
+  const chars = [...str];
+  const widths = chars.map((c) => measure(c, size, 700, 0) + tracking);
+  const total = widths.reduce((s, w) => s + w, 0);
+  let acc = -total / 2;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = color;
+  ctx.font = `700 ${size}px R`;
+  ctx.letterSpacing = "0px";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < chars.length; i++) {
+    const mid = acc + widths[i] / 2;
+    const ang = rot + mid / r;
+    ctx.save();
+    ctx.translate(cx + Math.sin(ang) * r, cy - Math.cos(ang) * r);
+    ctx.rotate(ang);
+    ctx.fillText(chars[i], 0, 0);
+    ctx.restore();
+    acc += widths[i];
+  }
+  ctx.restore();
+}
+// 打孔的刻线环
+function tickRing(cx, cy, r, count, rot, len, color, a = 1, lw = 1) {
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = color; ctx.lineWidth = lw;
+  for (let i = 0; i < count; i++) {
+    const ang = rot + (i / count) * Math.PI * 2;
+    const s = Math.sin(ang), c = Math.cos(ang);
+    const len2 = i % 4 === 0 ? len * 1.9 : len;
+    ctx.beginPath();
+    ctx.moveTo(cx + s * r, cy - c * r);
+    ctx.lineTo(cx + s * (r + len2), cy - c * (r + len2));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---------------------------------- 文案 ---------------------------------- */
+const T = {
+  name: "陈启粤",
+  latin: "CHENQIYUE",
+  role: "软件工程学生",
+  place: "中国 · 东莞",
+  motto: "喜欢折腾，偶尔整活，认真做东西",
+  focus: "AI · AGENT · 开源 · WEB · 3D",
+  url: "chenqiyue.ccwu.cc",
+  orbit: "似你 · Sini · VISION-BRIDGE · MAGNETRUSH · 古建场景生成 · WINCLEANPRO · 这间书房 · RETRO-BLOG ·",
+  projects: [
+    ["似你 · Sini", "FLUTTER", "端侧优先的 AI 数字人格"],
+    ["vision-bridge", "POWERSHELL", "给纯文本模型装眼睛"],
+    ["MagnetRush", "HTML5", "纯 Canvas 赛车小游戏"],
+    ["古建场景生成", "PYTHON", "低多边形中国古建"],
+    ["WinCleanPro", "POWERSHELL", "轻量 Windows 清理工具"],
+    ["这间书房", "WEBGL", "Three.js 手搓的房间"],
+    ["retro-desktop-blog", "JS", "Win98 风格博客"],
+    ["personal-website", "HTML", "零素材零框架单文件"],
+  ],
+  code: [
+    "<!doctype html>",
+    "<title>书房</title>",
+    "const door = rect(520, 660)",
+    "door.open()",
+    "room.push(camera)",
+    "camera.push(you)",
+    "// 零素材 · 零框架 · 一个文件",
+    "export default 陈启粤",
+  ],
+  scenes: ["DOOR", "TYPE", "ORBIT", "MORPH", "ROOM", "LATTICE", "WORK", "CODE", "NAME", "CARD"],
+};
+
+/* ----------------------------------- HUD ----------------------------------- */
+function hud(t, dark) {
+  const fg = dark ? C.ink : C.white;
+  const beat = t / BEAT;
+  const bar = Math.min(BARS, Math.floor(beat / 4) + 1);
+  const inBar = beat % 4;
+  const si = Math.min(9, Math.floor(t / SCENE));
+  const a = dark ? 0.5 : 0.42;
+
+  ctx.save();
+  ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = 1;
+
+  const L = 56, p = M - 26;
+  ctx.globalAlpha = a * 0.7;
+  [[p, p, 1, 1], [W - p, p, -1, 1], [p, H - p, 1, -1], [W - p, H - p, -1, -1]].forEach(([x, y, sx, sy]) => {
+    ctx.beginPath();
+    ctx.moveTo(x + sx * L, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * L);
+    ctx.stroke();
+  });
+
+  // 左上
+  ctx.globalAlpha = a + 0.28;
+  rect(M, M - 4, 8, 20, fg);
+  rect(M + 14, M - 4, 3, 20, fg);
+  ctx.globalAlpha = a;
+  ctx.font = "500 15px R"; ctx.letterSpacing = "3px";
+  ctx.fillText("陈启粤  CHENQIYUE", M + 32, M + 10);
+  ctx.globalAlpha = a * 0.72;
+  ctx.font = "400 13px R";
+  ctx.fillText("PERSONAL REEL — 2026", M + 32, M + 31);
+
+  // 右上
+  ctx.textAlign = "right";
+  ctx.globalAlpha = a;
+  ctx.font = "500 15px R";
+  ctx.fillText("120 BPM", W - M, M + 10);
+  ctx.globalAlpha = a + 0.3;
+  ctx.font = "700 15px R";
+  ctx.fillText(`${String(si + 1).padStart(2, "0")} — ${T.scenes[si]}`, W - M, M + 35);
+  ctx.globalAlpha = a;
+  ctx.font = "500 13px R";
+  ctx.fillText(`BAR ${bar} / ${BARS}`, W - M - 84, M + 58);
+  for (let i = 0; i < 4; i++) {
+    const x = W - M - 64 + i * 15, y = M + 48;
+    if (i <= Math.floor(inBar)) { ctx.globalAlpha = a + 0.2; ctx.fillRect(x, y, 9, 9); }
+    else { ctx.globalAlpha = a * 0.4; ctx.strokeRect(x + 0.5, y + 0.5, 8, 8); }
+  }
+
+  // 左下
+  ctx.textAlign = "left";
+  ctx.globalAlpha = a;
+  ctx.font = "500 15px R";
+  const f = Math.floor(t * 60) % 60, s = Math.floor(t) % 60, m = Math.floor(t / 60);
+  ctx.fillText(`00:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}:${String(f).padStart(2, "0")}`, M, H - M + 4);
+  ctx.globalAlpha = a * 0.7;
+  ctx.fillText("60 FPS", M + 150, H - M + 4);
+
+  // 底部进度
+  const x0 = M + 330, x1 = W - M - 210, y = H - M - 2, pr = cl(t / DUR);
+  ctx.globalAlpha = a * 0.45;
+  ctx.fillRect(x0, y, x1 - x0, 1);
+  ctx.globalAlpha = a + 0.24;
+  ctx.fillRect(x0, y - 1, (x1 - x0) * pr, 3);
+  // 十个场景的分段刻度
+  ctx.globalAlpha = a * 0.6;
+  for (let i = 1; i < 10; i++) ctx.fillRect(x0 + ((x1 - x0) * i) / 10, y - 4, 1, 7);
+  ctx.globalAlpha = a * 0.9;
+  ctx.textAlign = "center";
+  ctx.font = "400 13px R"; ctx.letterSpacing = "2px";
+  ctx.fillText("一扇门 · 开成一间屋子", (x0 + x1) / 2, y - 16);
+
+  // 右下
+  ctx.textAlign = "right";
+  ctx.font = "700 15px R"; ctx.letterSpacing = "3px";
+  ctx.globalAlpha = a + 0.3;
+  ctx.fillText(`${String(Math.min(BEATS, Math.floor(beat) + 1)).padStart(2, "0")} / ${BEATS}`, W - M, H - M + 4);
+  ctx.restore();
+}
+
+/* --------------------------- 名字的点阵（初始化算一次） --------------------------- */
+const NAME_STYLE = { size: 360, track: 22 };
+let NPTS = null, NBOX = null;
+function nameWidth(size = NAME_STYLE.size, track = NAME_STYLE.track) {
+  return glyphRuns(T.name, size, 900, track).width;
+}
+function drawName(baselineY, o = {}) {
+  const { size = NAME_STYLE.size, track = NAME_STYLE.track, color = C.white, alpha = 1, x = null, depth = 0, dark = null } = o;
+  const runs = glyphRuns(T.name, size, 900, track);
+  const x0 = x == null ? CX - runs.width / 2 : x;
+  const chars = [...T.name];
+  ctx.save();
+  ctx.textAlign = "left";
+  if (depth > 0.5) {
+    const n = Math.max(1, Math.round(depth / 3));
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = dark || color;
+    for (let d = n; d >= 1; d--)
+      for (let i = 0; i < chars.length; i++) {
+        ctx.font = `900 ${size}px R`;
+        ctx.fillText(chars[i], x0 + runs.xs[i] + d * 2.2, baselineY - d * 2.2);
+      }
+  }
+  ctx.font = `900 ${size}px R`;
+  ctx.letterSpacing = "0px";
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
+  for (let i = 0; i < chars.length; i++) ctx.fillText(chars[i], x0 + runs.xs[i], baselineY);
+  ctx.restore();
+  return { x0, w: runs.width };
+}
+function sampleName() {
+  const S = NAME_STYLE.size, w = 1400, h = 560, base = 430;
+  const off = document.createElement("canvas");
+  off.width = w; off.height = h;
+  const o = off.getContext("2d");
+  o.fillStyle = "#fff";
+  o.font = `900 ${S}px R`;
+  o.textAlign = "left";
+  o.letterSpacing = "0px";
+  const runs = glyphRuns(T.name, S, 900, NAME_STYLE.track);
+  const chars = [...T.name];
+  const x0 = w / 2 - runs.width / 2;
+  for (let i = 0; i < chars.length; i++) o.fillText(chars[i], x0 + runs.xs[i], base);
+  const d = o.getImageData(0, 0, w, h).data;
+  const pts = [];
+  let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  for (let y = 0; y < h; y += 12)
+    for (let x = 0; x < w; x += 12)
+      if (d[(y * w + x) * 4 + 3] > 150) {
+        pts.push([x - w / 2, y - base]);
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+  NPTS = pts;
+  NBOX = { x: minX - w / 2, y: minY - base, w: maxX - minX, h: maxY - minY };
+}
+
+/* 把名字采样成 cols×rows 的布尔网格：点阵里能"浮出"三个字 */
+const LAT = { cols: 40, rows: 16 };
+let NMASK = null;
+function buildNameMask(cols, rows) {
+  const w = 1280, h = 512, base = 404, S = 372;
+  const off = document.createElement("canvas");
+  off.width = w; off.height = h;
+  const o = off.getContext("2d");
+  o.fillStyle = "#fff";
+  o.textAlign = "left";
+  o.font = `900 ${S}px R`;
+  o.letterSpacing = "0px";
+  const runs = glyphRuns(T.name, S, 900, 18);
+  const x0 = w / 2 - runs.width / 2;
+  const chars = [...T.name];
+  for (let i = 0; i < chars.length; i++) o.fillText(chars[i], x0 + runs.xs[i], base);
+  const d = o.getImageData(0, 0, w, h).data;
+  const m = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const xa = Math.floor((c / cols) * w), xb = Math.floor(((c + 1) / cols) * w);
+      const ya = Math.floor((r / rows) * h), yb = Math.floor(((r + 1) / rows) * h);
+      let hit = 0;
+      for (let y = ya; y < yb && !hit; y += 2)
+        for (let x = xa; x < xb; x += 2)
+          if (d[(y * w + x) * 4 + 3] > 110) { hit = 1; break; }
+      m.push(hit);
+    }
+  return m;
+}
+
+/* ============================ 01 — DOOR  0.0 – 3.0 ============================ */
+function s1(t) {
+  const { x, y, w, h } = DOOR;
+  fill(C.ink);
+  // 0.0–0.6 一条线 + 把手
+  const p0 = outExpo(p01(t, 0.04, 0.4));
+  rect(x, y, 1, h, C.white);
+  circle(x + 4, lerp(y + 40, y + h * 0.62, p0), 5, C.white);
+
+  // 0.6–1.2 长成门框（上下沿先出，门轴边后到）
+  const sx = outExpo(p01(t, 0.6, 0.95));
+  const sy = outExpo(p01(t, 0.95, 1.2));
+  if (sx > 0) {
+    rect(x, y, w * sx, 1, C.white);
+    rect(x, y + h - 1, w * sx, 1, C.white);
+  }
+  if (sy > 0) rect(x + w - 1, y + h * (1 - sy), 1, h * sy, C.white);
+  const hp = outExpo(p01(t, 1.0, 1.2));
+  circle(lerp(x + 4, x + w - 34, hp), lerp(y + h * 0.62, y + h / 2, hp), 5, C.white);
+
+  // 1.2–1.7 蓝色灌进框里；再套一层内框，读成"门里有门"
+  const gf = outExpo(p01(t, 1.2, 1.5));
+  if (gf > 0) {
+    rect(x + 1, y + 1, (w - 2) * gf, h - 2, C.blue);
+    const ins = outExpo(p01(t, 1.4, 1.68));
+    if (ins > 0) outline(x + 26, y + 26, (w - 52) * ins, (h - 52) * ins, C.white, 1, 0.55);
+  }
+  const hb = springy(p01(t, 1.4, 1.72), 9, 17);
+  ring(x + w - 34, y + h / 2, 15 * hb, 2, C.white);
+  circle(x + w - 34, y + h / 2, 5 * hb, C.white);
+
+  // 1.7–2.35 门被推开：白门板向门轴压缩，露出后面的蓝
+  const open = inOutExpo(p01(t, 1.7, 2.3));
+  if (open > 0.001) {
+    const squash = Math.cos(open * Math.PI * 0.47);
+    const w2 = Math.max(0, w * squash);
+    const tilt = 34 * (1 - squash);
+    fill(C.blue);
+    if (w2 > 0.5) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w2, y + tilt);
+      ctx.lineTo(x + w2, y + h - tilt);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fillStyle = C.white; ctx.fill();
+      // 门板内侧的暗面
+      ctx.beginPath();
+      ctx.moveTo(x + w2 * 0.84, y + tilt * 0.8);
+      ctx.lineTo(x + w2, y + tilt);
+      ctx.lineTo(x + w2, y + h - tilt);
+      ctx.lineTo(x + w2 * 0.84, y + h - tilt * 0.8);
+      ctx.closePath();
+      ctx.globalAlpha = 0.3; ctx.fillStyle = C.blue; ctx.fill(); ctx.globalAlpha = 1;
+      circle(x + Math.max(10, w2 - 26), y + h / 2, 12 * (1 - open * 0.5), C.blue);
+    }
+  }
+  rect(x - 1, y, 2, h, C.white);
+
+  // 2.35–3.0 门后先透出一层透视网格，再压平成一条横线
+  const g2 = p01(t, 2.35, 2.78);
+  if (g2 > 0) {
+    const cols = 9, rows = 5;
+    for (let i = 0; i <= cols; i++) {
+      const xx = lerp(x, W, i / cols);
+      line(xx, lerp(y, 0, g2), xx, lerp(y + h, H, g2), C.white, 1, 0.10 * (1 - p01(t, 2.6, 2.85)));
+    }
+    for (let j = 0; j <= rows; j++) {
+      const yy = lerp(y, 0, g2) + (lerp(y + h, H, g2) - lerp(y, 0, g2)) * (j / rows);
+      line(lerp(x, 0, g2), yy, lerp(x + w, W, g2), yy, C.white, 1, 0.10 * (1 - p01(t, 2.6, 2.85)));
+    }
+  }
+  // 收成一条横线，交给下一场
+  const flat = outExpo(p01(t, 2.62, 2.95));
+  if (flat > 0) {
+    const ruleY = CY;
+    const wid = lerp(w, W - M - DOOR.x + 1, flat);
+    rect(DOOR.x - 1, ruleY - 1 + (1 - flat) * (h / 2), wid, 2, C.white);
+  }
+}
+
+/* ============================ 02 — TYPE  3.0 – 6.0 ============================ */
+const RULE = { y: CY };
+const SYL = [470, 960, 1400];
+const SYL_EN = ["CHEN", "QI", "YUE"];
+function s2(t) {
+  fill(C.blue);
+  const g = outExpo(p01(t, 3.0, 3.22)) * (1 - smooth(p01(t, 3.12, 3.5)));
+  if (g > 0.001) rect(DOOR.x - 1, RULE.y, (W - M - DOOR.x + 1) * g, 2, C.white);
+
+  // 4.4–5.0 名字从 292 收到 235（给散开做准备）
+  const shrink = smooth(p01(t, 4.42, 5.0));
+  const size = lerp(292, 235, shrink);
+  const track = lerp(22, 10, shrink);
+  const runs = glyphRuns(T.name, size, 900, track);
+  const x0 = CX - runs.width / 2;
+  const base = lerp(RULE.y - 16, RULE.y + 60, shrink);
+
+  // 3.1–3.9 三个字依次顶出来，同时挤出厚度
+  const rise = (i) => springy(p01(t, 3.06 + i * 0.05, 3.46 + i * 0.05), 10.5, 19);
+  const depth = 26 * smooth(p01(t, 3.5, 4.1)) * (1 - smooth(p01(t, 4.9, 5.35)));
+  const chars = [...T.name];
+  const split = outExpo(p01(t, 5.0, 5.16));
+  const outP = outExpo(p01(t, 5.16, 5.4));
+  const inP = springy(p01(t, 5.2, 5.44), 12, 17);
+
+  if (split <= 0.001) {
+    clip(0, 0, W, RULE.y + 2 + 200, () => {
+      for (let i = 0; i < chars.length; i++) {
+        const y = base + (1 - rise(i)) * 420;
+        ctx.save();
+        ctx.textAlign = "left";
+        ctx.font = `900 ${size}px R`;
+        ctx.letterSpacing = "0px";
+        const n = Math.max(0, Math.round(depth / 3));
+        ctx.fillStyle = "#0A4FB8";
+        for (let d = n; d >= 1; d--) ctx.fillText(chars[i], x0 + runs.xs[i] + d * 2.4, y - d * 2.4);
+        ctx.fillStyle = C.white;
+        ctx.fillText(chars[i], x0 + runs.xs[i], y);
+        ctx.restore();
+      }
+    });
+  } else {
+    // 5.0–5.44：三个字滑到各自位置，然后中文上移、英文顶上来
+    for (let i = 0; i < 3; i++) {
+      const xf = CX - glyphRuns(T.name, 235, 900, 10).width / 2 + glyphRuns(T.name, 235, 900, 10).xs[i];
+      const xt = SYL[i] - 235 / 2;
+      const x = lerp(xf, xt, split);
+      const y = lerp(RULE.y + 60, 622, split);
+      clip(SYL[i] - 280, 350, 560, 380, () => {
+        ctx.save();
+        ctx.font = `900 235px R`; ctx.letterSpacing = "0px";
+        ctx.fillStyle = C.white; ctx.globalAlpha = 1;
+        ctx.fillText(chars[i], x, y - 400 * outP);
+        if (split > 0.9) {
+          const ew = measure(SYL_EN[i], 235, 900, -10);
+          ctx.font = `900 235px R`;
+          ctx.fillText(SYL_EN[i], SYL[i] - ew / 2, 622 + 400 * (1 - inP));
+        }
+        ctx.restore();
+      });
+    }
+    const wn = measure("CHEN", 235, 900, -10) / 2 + measure("QI", 235, 900, -10) / 2;
+    const zn = measure("QI", 235, 900, -10) / 2 + measure("YUE", 235, 900, -10) / 2;
+    const vis = split * (1 - outP);
+    [SYL[0] + wn + 34, SYL[1] + zn + 34].forEach((x) => rect(x, 440 - vis * 30, 1, 250 + vis * 60, C.white));
+  }
+
+  // 3.9–4.9 拉丁行 + 下划线（收名的时候一起退场）
+  const lt = lerp(34, 14, outExpo(p01(t, 3.9, 4.5)));
+  const lwidth = measure(T.latin, 46, 500, lt);
+  const up = springy(p01(t, 3.94, 4.4), 9, 16);
+  const lFade = 1 - smooth(p01(t, 4.4, 4.72));
+  if (lFade > 0.01) {
+    clip(0, RULE.y + 26, W, H, () => {
+      text(T.latin, CX - lwidth / 2, RULE.y + 26 + 72 + (1 - up) * 190, 46, 500, C.white,
+        { tracking: lt, alpha: lFade, blur: Math.abs(vel(() => up, t)) * 0.05 });
+    });
+    const uw = outExpo(p01(t, 4.0, 4.5)) * lFade;
+    rect(CX - (lwidth + 120) * uw / 2, RULE.y + 26, (lwidth + 120) * uw, 2, C.white);
+  }
+
+  // 5.44–6.0 三行身份从右边推进
+  const rows = [[T.role, 42, 700], [T.place, 42, 700], [T.motto, 25, 500]];
+  rows.forEach(([str, sz, wgt], i) => {
+    const p = outExpo(p01(t, 5.56 + i * 0.06, 5.96 + i * 0.06));
+    if (p <= 0.001) return;
+    const y = 846 + i * 62;
+    const ww = (W - M * 2) * 0.52;
+    clip(M, y - sz * 1.3, ww * p, sz * 1.7, () => text(str, M, y, sz, wgt, C.white, { tracking: i === 2 ? 2 : 5 }));
+    rect(M, y + 18, ww * p, 1, C.white, 0.45);
+    // 右侧小注释，做尺度对比
+    const note = ["ROLE", "PLACE", "MOTTO"][i];
+    clip(W - M - 200, y - sz * 1.3, 200 * p, sz * 1.7, () =>
+      text(note, W - M, y, 12, 500, C.white, { tracking: 4, alpha: 0.5, align: "right" }));
+  });
+
+}
+
+
+/* ============================ 03 — ORBIT  6.0 – 9.0 ============================ */
+function s3(t) {
+  fill(C.blue);
+  // 6.0–6.4 上一场留下的三个音节缩小退场
+  const sylOut = smooth(p01(t, 6.0, 6.42));
+  if (sylOut < 0.999) {
+    for (let i = 0; i < 3; i++) {
+      text(SYL_EN[i], lerp(SYL[i], CX + (i - 1) * 90, sylOut), 622, lerp(235, 60, sylOut), 900, C.white,
+        { align: "center", alpha: 1 - sylOut, tracking: 4 });
+    }
+  }
+  // 6.0–6.5 三行信息塌缩成一个圆心
+  const collapse = outExpo(p01(t, 6.0, 6.44));
+  const rows = [[T.role, 56], [T.place, 56], [T.motto, 32]];
+  rows.forEach(([str, sz], i) => {
+    const y0 = 700 + i * 66;
+    const xr = lerp(900, CX, collapse);
+    const yr = lerp(y0, CY + (i - 1) * 18, collapse);
+    if (collapse > 0.985) return;
+    text(str, xr, yr, lerp(sz, 10, collapse), i === 2 ? 500 : 700, C.white,
+      { tracking: lerp(4, 1, collapse), alpha: 1 - collapse });
+  });
+
+  // 6.4–7.2 字沿着圆周排开，环在转
+  const ringIn = outExpo(p01(t, 6.16, 6.8));
+  const fadeOut = 1 - smooth(p01(t, 8.3, 8.72));
+  const rot = (t - 6.16) * 0.42;
+  const R = lerp(70, 330, ringIn);
+  if (ringIn > 0.001) {
+    // 八个项目挂在环上，像卫星；水平排，永远读得正
+    ring(CX, CY, R - 44, 1, C.white, 0.32 * ringIn * fadeOut);
+    ring(CX, CY, R + 58, 1, C.white, 0.24 * ringIn * fadeOut);
+    tickRing(CX, CY, R + 34, 60, -rot * 1.6, 7, C.white, 0.26 * ringIn * fadeOut, 1);
+    tickRing(CX, CY, R - 62, 24, rot * 2.1, 5, C.white, 0.22 * ringIn * fadeOut, 1);
+    const rl2 = R + 46;
+    for (let i = 0; i < 8; i++) {
+      const ang = rot * 0.85 + (i / 8) * Math.PI * 2;
+      const px = CX + Math.sin(ang) * rl2, py = CY - Math.cos(ang) * rl2;
+      const lit = 0.5 + 0.5 * Math.cos(ang + Math.PI);   // 越靠上方越亮
+      const a2 = ringIn * fadeOut * (0.4 + 0.6 * lit);
+      const nm = T.projects[i][0];
+      const side = Math.sin(ang);
+      if (Math.abs(side) < 0.34) {
+        const w2 = measure(nm, 21, 700, 1);
+        text(String(i + 1).padStart(2, "0"), px - w2 / 2 - 16, py + 4, 11, 700, C.white,
+          { tracking: 1, alpha: a2 * 0.65, align: "right" });
+        text(nm, px - w2 / 2, py + 4, 21, 700, C.white, { tracking: 1, alpha: a2 });
+      } else if (side > 0) {
+        text(String(i + 1).padStart(2, "0"), px + 12, py + 4, 11, 700, C.white, { tracking: 1, alpha: a2 * 0.6 });
+        text(nm, px + 34, py + 4, 21, 700, C.white, { tracking: 1, alpha: a2 });
+      } else {
+        text(String(i + 1).padStart(2, "0"), px - 12, py + 4, 11, 700, C.white,
+          { tracking: 1, alpha: a2 * 0.6, align: "right" });
+        text(nm, px - 34, py + 4, 21, 700, C.white, { tracking: 1, alpha: a2, align: "right" });
+      }
+    }
+  }
+  // 母题：一条线从圆心转出去
+  const rl = outExpo(p01(t, 6.9, 7.35)) * (1 - smooth(p01(t, 7.55, 7.85)));
+  if (rl > 0.01) {
+    const pa = rot * 0.85, pr = (R + 74) * rl;
+    line(CX + Math.sin(pa) * 172, CY - Math.cos(pa) * 172, CX + Math.sin(pa) * pr, CY - Math.cos(pa) * pr, C.white, 1, 0.28);
+  }
+  // 圆心：名字
+  const cn = outExpo(p01(t, 6.62, 7.05));
+  const nsc = smooth(p01(t, 8.2, 8.85));
+  if (cn > 0) drawName(CY + 6 - 40 * nsc, { size: lerp(96, 46, nsc), track: 6, alpha: cn * (1 - smooth(p01(t, 8.75, 8.98))) });
+
+  // 7.2–8.2 环倾斜成椭圆轨道，再套两层反向轨道 + 卫星点
+  const tilt = smooth(p01(t, 7.2, 7.7));
+  if (tilt > 0.001 && ringIn > 0.9) {
+    ctx.save();
+    for (let k = 0; k < 3; k++) {
+      const rx = (250 + k * 90) * ringIn, ry = rx * lerp(1, 0.3 + k * 0.06, tilt);
+      const rr = (k % 2 ? -1 : 1) * (t - 7.2) * (0.5 + k * 0.22);
+      ctx.beginPath();
+      ctx.ellipse(CX, CY, rx, ry, 0, 0, Math.PI * 2);
+      ctx.lineWidth = k === 0 ? 2 : 1;
+      ctx.strokeStyle = C.white;
+      ctx.globalAlpha = (0.9 - k * 0.24) * tilt * fadeOut;
+      ctx.stroke();
+      // 轨道上的卫星
+      const sx = CX + Math.cos(rr) * rx, sy = CY + Math.sin(rr) * ry;
+      circle(sx, sy, k === 0 ? 9 : 6, C.white, tilt * fadeOut);
+    }
+    ctx.restore();
+  }
+  // 8.2–9.0 轨道收拢成一串珠子，压成方块的四条边
+  const beads = outExpo(p01(t, 8.05, 8.6));
+  if (beads > 0.001) {
+    const n = 44;
+    const sq = lerp(700, 340, beads);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + rot;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const m = Math.max(Math.abs(ca), Math.abs(sa));
+      const px = lerp(CX + ca * R * 1.02, CX + (ca / m) * (sq / 2), beads);
+      const py = lerp(CY + sa * R * 0.32, CY + (sa / m) * (sq / 2), beads);
+      circle(px, py, lerp(4, 3, beads), C.white, 1 - 0.15 * beads);
+    }
+  }
+
+}
+
+/* ============================ 04 — MORPH  9.0 – 12.0 ============================ */
+function addPoly(cx, cy, R, sides, blend, dir = 1) {
+  const N = 240, seg = (Math.PI * 2) / sides;
+  for (let k = 0; k <= N; k++) {
+    const i = dir > 0 ? k : N - k;
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const local = (((a + Math.PI / 2) % seg) + seg) % seg - seg / 2;
+    const polyR = Math.cos(seg / 2) / Math.cos(local);
+    const r = R * lerp(1, polyR, cl(blend));
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+}
+function s4(t) {
+  // 纸白从方块里长出来
+  fill(C.blue);
+  const g = outExpo(p01(t, 9.18, 9.42));
+  if (g > 0.001) rect(lerp(CX - 170, 0, g), lerp(CY - 170, 0, g), lerp(340, W, g), lerp(340, H, g), C.paper);
+  // 珠子就停在上一场那个方块上，然后原地淡出
+  const beadFade = 1 - smooth(p01(t, 9.02, 9.34));
+  if (beadFade > 0.01) {
+    const n = 44, sq = 340;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const ca = Math.cos(a), sa = Math.sin(a), m = Math.max(Math.abs(ca), Math.abs(sa));
+      circle(CX + (ca / m) * (sq / 2), CY + (sa / m) * (sq / 2), 3, C.blue, beadFade);
+    }
+  }
+  // 母题：一条横线在正中
+  const ax = outExpo(p01(t, 9.05, 9.4)) * (1 - smooth(p01(t, 11.2, 11.5)));
+  if (ax > 0.01) rect(0, CY - 1, W * ax, 2, C.blue, 0.16);
+  // 9.3–10.2 方块 → 圆，外圈加刻线环
+  const sq = 340;
+  if (t < 10.02) {
+    const round = springy(p01(t, 9.5, 9.96), 9, 14);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(CX - sq / 2, CY - sq / 2, sq, sq, lerp(0, sq / 2, cl(round)));
+    ctx.fillStyle = C.blue; ctx.fill();
+    ctx.restore();
+    tickRing(CX, CY, 210, 48, t * 0.9, 8, C.ink, 0.35 * smooth(p01(t, 9.6, 10.0)) * (1 - smooth(p01(t, 10.1, 10.25))), 1);
+    const hp = outExpo(p01(t, 9.5, 9.9));
+    circle(lerp(CX + sq / 2 - 42, CX + 44, hp), lerp(CY - sq / 2 + 42, CY - 44, hp), 12, C.paper);
+  }
+
+  // 9.9–11.1 变形场：一圈小图形各自差半拍地跟着变
+  const fieldOn = smooth(p01(t, 9.85, 10.2)) * (1 - smooth(p01(t, 10.95, 11.2)));
+  if (fieldOn > 0.01) {
+    const fb = outExpo(p01(t, 10.0, 10.2)) * (1 - inOutExpo(p01(t, 10.55, 10.95)));
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2 + t * 0.36;
+      const rr = 392 + (i % 3) * 34;
+      const bx = CX + Math.cos(a) * rr, by = CY + Math.sin(a) * rr * 0.92;
+      ctx.beginPath();
+      addPoly(bx, by, 26 - (i % 4) * 3, 3, cl(fb + (i % 5) * 0.06 - 0.12));
+      ctx.fillStyle = C.blue;
+      ctx.globalAlpha = 0.30 * fieldOn;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 10.2–11.1 圆 → 三角 → 环
+  const p1 = outExpo(p01(t, 10.0, 10.18));
+  const p2 = inOutExpo(p01(t, 10.55, 10.95));
+  if (t > 10.0 && t < 11.18) {
+    const R = 268;
+    const inner = lerp(0.5, R - 44, p2);
+    ctx.beginPath();
+    addPoly(CX, CY, R, 3, p1, 1);
+    addPoly(CX, CY, inner, 3, p1, -1);
+    ctx.fillStyle = C.blue;
+    ctx.fill("evenodd");
+    tickRing(CX, CY, R + 30, 36, -t * 1.1, 9, C.ink, 0.3 * p1, 1);
+  }
+  // 11.1–12.0 环压成椭圆地面
+  const flat = inOutExpo(p01(t, 11.1, 11.72));
+  if (flat > 0.001) {
+    const rx = lerp(268, 640, flat), ry = lerp(268, 172, flat);
+    const cy2 = lerp(CY, CY + 118, flat);
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.ellipse(CX, cy2, rx, ry, 0, 0, Math.PI * 2);
+    ctx.lineWidth = lerp(44, 2, flat);
+    ctx.strokeStyle = C.blue; ctx.stroke();
+    ctx.restore();
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      circle(CX + Math.cos(a) * rx, cy2 + Math.sin(a) * ry, lerp(5, 3, flat), C.blue);
+    }
+  }
+}
+
+/* ============================ 05 — ROOM  12.0 – 15.0 ============================ */
+const ROOM = { vpx: CX, vpy: CY - 214, backW: 300, backH: 176, frontW: 1560, floorY: H - M - 42 };
+function drawFloor(a, frontW = ROOM.frontW, backW = ROOM.backW) {
+  const { vpx, vpy, backH, floorY } = ROOM;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(vpx - backW, vpy + backH);
+  ctx.lineTo(vpx + backW, vpy + backH);
+  ctx.lineTo(vpx + frontW / 2, floorY);
+  ctx.lineTo(vpx - frontW / 2, floorY);
+  ctx.closePath();
+  ctx.clip();
+  ctx.globalAlpha = a;
+  for (let i = 0; i <= 12; i++) {
+    const x = lerp(vpx - frontW / 2, vpx + frontW / 2, i / 12);
+    line(vpx, vpy, x, floorY, C.blue, 1);
+  }
+  for (let i = 1; i <= 7; i++) {
+    const q = i / 7, e = q * q;
+    const yy = lerp(vpy + backH, floorY, e);
+    const hw = lerp(backW, frontW / 2, e);
+    line(vpx - hw, yy, vpx + hw, yy, C.blue, 1);
+  }
+  ctx.restore();
+}
+function drawWalls(wallH, backW = ROOM.backW, frontW = ROOM.frontW) {
+  const { vpx, vpy, backH, floorY } = ROOM;
+  ctx.save();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1;
+  [-1, 1].forEach((s) => {
+    ctx.beginPath();
+    ctx.moveTo(vpx + s * backW, vpy + backH);
+    ctx.lineTo(vpx + s * frontW / 2, floorY);
+    ctx.lineTo(vpx + s * frontW / 2, floorY - wallH);
+    ctx.lineTo(vpx + s * backW, vpy + backH - wallH * 0.62);
+    ctx.closePath();
+    ctx.fillStyle = C.paper; ctx.globalAlpha = 0.55; ctx.fill();
+    ctx.globalAlpha = 1; ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawDesk(p) {
+  if (p <= 0.002) return;
+  const { vpx, floorY } = ROOM;
+  const top = floorY - 214, bot = floorY - 122;
+  const wTop = 720, wBot = 880;
+  ctx.save();
+  ctx.globalAlpha = p;
+  // 窗光落在地板上
+  ctx.beginPath();
+  ctx.moveTo(vpx - 150, 402); ctx.lineTo(vpx + 150, 402);
+  ctx.lineTo(vpx + 300, floorY - 40); ctx.lineTo(vpx - 300, floorY - 40);
+  ctx.closePath(); ctx.fillStyle = C.blue; ctx.globalAlpha = 0.10 * p; ctx.fill();
+  ctx.globalAlpha = p;
+  // 桌面
+  ctx.beginPath();
+  ctx.moveTo(vpx - wTop / 2, top); ctx.lineTo(vpx + wTop / 2, top);
+  ctx.lineTo(vpx + wBot / 2, bot); ctx.lineTo(vpx - wBot / 2, bot);
+  ctx.closePath();
+  ctx.fillStyle = C.paper; ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1; ctx.stroke();
+  // 桌沿（正面那条窄边）
+  rect(vpx - wBot / 2, bot, wBot, 10, C.ink, 0.9);
+  // 桌腿
+  line(vpx - wBot / 2 + 26, bot, vpx - wBot / 2 + 40, floorY - 6, C.ink, 1);
+  line(vpx + wBot / 2 - 26, bot, vpx + wBot / 2 - 40, floorY - 6, C.ink, 1);
+  line(vpx - wBot / 2 + 26, bot + 30, vpx + wBot / 2 - 26, bot + 30, C.ink, 1, 0.25);
+  // 显示器
+  const mw = 292, mh = 178, mx = vpx - mw / 2, my = top - mh - 30;
+  rect(mx, my, mw, mh, C.blue);
+  outline(mx - 7, my - 7, mw + 14, mh + 14, C.ink, 1);
+  rect(vpx - 13, my + mh, 26, 22, C.ink);
+  rect(vpx - 58, my + mh + 22, 116, 6, C.ink);
+  // 屏幕里那一条线（全片的母题）
+  rect(mx + 26, my + mh * 0.5, (mw - 52) * cl(p * 1.4), 2, C.white, 0.8);
+  rect(mx + 26, my + mh * 0.5 - 26, 90 * cl((p - 0.3) / 0.7), 2, C.white, 0.3);
+  rect(mx + 26, my + mh * 0.5 + 26, 150 * cl((p - 0.5) / 0.5), 2, C.white, 0.3);
+  // 杯子（坐在桌面上）
+  circle(vpx + wTop / 2 - 96, top - 13, 13, C.ink);
+  rect(vpx + wTop / 2 - 96 + 14, top - 16, 10, 5, C.ink);
+  ctx.restore();
+}
+
+function s5(t) {
+  fill(C.paper);
+  // 12.0–12.5 椭圆张开成透视地面
+  const p = outExpo(p01(t, 12.0, 12.5));
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(CX, lerp(CY + 118, ROOM.floorY - 6, p), lerp(640, ROOM.frontW / 2, p), lerp(172, 22, p), 0, 0, Math.PI * 2);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = C.blue; ctx.globalAlpha = 1 - p; ctx.stroke();
+  ctx.restore();
+  drawFloor(smooth(p));
+  for (let i = 0; i < 40; i++) {
+    const a = (i / 40) * Math.PI * 2;
+    circle(lerp(CX + Math.cos(a) * 640, CX + Math.cos(a) * (ROOM.frontW / 2 - 40), p),
+      lerp(CY + 118 + Math.sin(a) * 172, ROOM.floorY - 6, p), 3, C.blue);
+  }
+  // 12.5–13.6 两面墙立起来；再套一个内框（屋里有屋）
+  const wall = outExpo(p01(t, 12.5, 13.3));
+  drawWalls(520 * wall);
+  drawDesk(outExpo(p01(t, 12.75, 13.25)));
+  const nest = outExpo(p01(t, 12.9, 13.5));
+  if (nest > 0) {
+    const bw = ROOM.backW * lerp(0.2, 0.62, nest), bh = ROOM.backH * lerp(0.2, 0.62, nest);
+    outline(CX - bw, ROOM.vpy + ROOM.backH - bh, bw * 2, bh, C.ink, 1, 0.5);
+  }
+  // 窗
+  const w = springy(p01(t, 13.0, 13.4), 9, 15);
+  if (w > 0.001) {
+    const ww = ROOM.backW * 1.9 * w, wh = ROOM.backH * w;
+    const wy = ROOM.vpy + ROOM.backH - wh;
+    rect(CX - ww / 2, wy, ww, wh, C.blue);
+    outline(CX - ww / 2 - 5, wy - 5, ww + 10, wh + 10, C.ink, 1, 0.85);
+    rect(CX - 1, wy, 2, wh, C.white, 0.55);
+    rect(CX - ww / 2, wy + wh * 0.46, ww, 2, C.white, 0.55);
+  }
+  // 13.6–14.5 镜头推进，窗涨满
+  const zoom = outExpo(p01(t, 13.6, 14.4));
+  if (zoom > 0.001) {
+    const s = lerp(1, 1.34, zoom);
+    ctx.save();
+    ctx.translate(CX, CY); ctx.rotate(lerp(0, -0.01, zoom)); ctx.scale(s, s); ctx.translate(-CX, -CY);
+    fill(C.paper);
+    drawFloor(1);
+    drawWalls(520);
+    drawDesk(1);
+    const k = inOutExpo(p01(t, 13.72, 14.32));
+    const ww = lerp(ROOM.backW * 1.9, W * 1.12, k), wh = lerp(ROOM.backH, H * 1.12, k);
+    const wcy = ROOM.vpy + ROOM.backH - ROOM.backH / 2;
+    rect(CX - ww / 2, wcy - wh / 2, ww, wh, C.blue);
+    ctx.restore();
+  }
+  // 14.5–15.0 窗里浮出点阵，交给下一场
+  const lat = smooth(p01(t, 14.34, 14.92));
+  if (lat > 0.001) {
+    const cols = 32, rows = 14;
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const px = M + 60 + c * 56, py = CY - 210 + r * 32;
+        const d = Math.hypot((c - cols / 2) / cols, (r - rows / 2) / rows);
+        const a = (0.85 - d * 0.5) * lat;
+        circle(px, py, 2.2 + 1.4 * lat, C.white, a);
+      }
+  }
+}
+
+/* ============================ 06 — LATTICE  15.0 – 18.0 ============================ */
+function s6(t) {
+  fill(C.blue);
+  const lt = t - 15.0;
+  const cols = LAT.cols, rows = LAT.rows;
+  const wrap = smooth(p01(t, 15.55, 16.4));     // 平面 → 圆柱
+  const tilt = smooth(p01(t, 16.4, 17.0));      // 圆柱 → 俯视椭圆
+  const spin = (t - 15.55) * 1.15;
+  const collapse = smooth(p01(t, 17.0, 17.5));  // 收成八条线
+  const rad = 372, planeW = W - M * 2 - 200;
+  // 15.3–15.95 点阵里浮出名字，16.6 起又散掉
+  const crestP = lerp(-0.15, 1.15, p01(t, 15.02, 15.5));
+  const crestA = smooth(p01(t, 15.0, 15.12)) * (1 - smooth(p01(t, 15.44, 15.6)));
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const u = c / (cols - 1), v = r / (rows - 1);
+      // 平面：带波浪的透视面（越远越窄）
+      const perspY = lerp(1.35, 0.62, v);
+      const flatX = CX + (u - 0.5) * planeW * perspY;
+      const flatY = CY - 210 + v * 420 + Math.sin(u * 5.4 + t * 2.4) * 40 * (1 - wrap);
+      // 圆柱
+      const ang = u * Math.PI * 2 + spin;
+      const cz = Math.cos(ang) * rad;
+      const k = 1 + cz / 1200;
+      // 卷成圆柱后只画朝向观众的那半面，柱面才读得出来；俯视时再放开
+      if (wrap > 0.9 && tilt < 0.15 && cz < -0.72 * rad) continue;
+      const cylX = CX + Math.sin(ang) * rad * k;
+      // 略俯视：近处那一列往下沉，上下沿口成为椭圆 → 才读得出是根管子
+      const cylY = CY - 250 + v * 510 + (cz / rad) * 44;
+      // 俯视
+      const px1 = lerp(flatX, cylX, wrap);
+      const py1 = lerp(flatY, cylY, wrap);
+      const px2 = px1;
+      const py2 = CY + (py1 - CY) * lerp(1, 0.36, tilt);
+      // 收成八条线
+      const lineIdx = Math.floor(v * 8) % 8;
+      const px = lerp(px2, CODE.x - 60, collapse);
+      const py = lerp(py2, CODE.y0 + lineIdx * CODE.gap - 8, collapse);
+      // 一道波峰从左扫到右（只在还没卷起来的时候）
+      const on = Math.exp(-Math.pow((u - crestP) * 4.2, 2)) * crestA;
+      const depth = 0.5 + 0.5 * (cz / rad);          // 0 = 最远，1 = 最近
+      const a = cl((0.95 - 0.45 * v) * (0.35 + 0.65 * lerp(1, k, wrap * (1 - tilt))) * lerp(1, 0.28 + 0.72 * depth, wrap) + on * 0.85);
+      if (collapse > 0.985) {
+        if (c === 0) rect(CODE.x - 60, CODE.y0 + lineIdx * CODE.gap - 8, W - M - 120, 2, C.white, 0.95);
+      } else {
+        circle(px, py, lerp(2.7, 2.1, collapse) + on * 2.2, C.white, a);
+        // 卷起来以后，把同一列的点连一根极淡的线，圆柱才读得出表面
+        if (wrap > 0.15 && c % 3 === 0 && v > 0) {
+          const vPrev = (r - 1) / (rows - 1);
+          const angP = u * Math.PI * 2 + spin;
+          const kP = 1 + (Math.cos(angP) * rad) / 1200;
+          const cxP = CX + Math.sin(angP) * rad * kP;
+          const cyP = CY - 250 + vPrev * 510;
+          const pyPrev = CY + (cyP - CY) * lerp(1, 0.36, tilt);
+          const pxPrev = lerp(cxP, cxP, 1);
+          line(lerp(pxPrev, CODE.x - 60, collapse), lerp(pyPrev, CODE.y0 + lineIdx * CODE.gap - 8, collapse), px, py,
+            C.white, 1, 0.22 * wrap * (1 - collapse));
+        }
+      }
+    }
+  }
+  // 收束时画面下压成墨黑
+  const down = inOutExpo(p01(t, 17.42, 17.72));
+  if (down > 0) rect(0, 0, W, H * down, C.ink);
+  if (down > 0.55) {
+    for (let i = 0; i < 8; i++) {
+      const g = outExpo(p01(t, 17.5 + i * 0.025, 17.86 + i * 0.025));
+      rect(CODE.x - 60, CODE.y0 + i * CODE.gap - 8, (W - M - 120) * g, 2, C.white);
+    }
+  }
+}
+
+/* ============================ 07 — WORK  18.0 – 21.0 ============================ */
+const CODE = { x: CX - 620, y0: CY - 132, gap: 38, size: 32 };
+function panel() {
+  const pw = W * 0.88, ph = H * 0.74;
+  return { x: CX - pw / 2, y: CY - ph / 2, w: pw, h: ph };
+}
+// 翻牌数字：一位一张卡，切换时上下滑
+function flipDigit(x, y, digit, p, color, size = 22) {
+  const cw = size * 0.78, chh = size * 1.34;
+  rect(x, y, cw, chh, color, 0.1);
+  line(x, y + chh / 2, x + cw, y + chh / 2, color, 1, 0.35);
+  clip(x, y, cw, chh, () => {
+    text(digit, x + cw / 2, y + chh * 0.72 - (1 - p) * chh, size, 700, color, { align: "center", tracking: 0 });
+  });
+}
+function drawRows(t, o) {
+  const { x, y, w, rowH, gap, expanded = -1, ex = 0, slide = 1.4, from = 0 } = o;
+  let cyy = y;
+  for (let i = 0; i < 8; i++) {
+    const [name, tag, desc] = T.projects[i];
+    const isEx = i === expanded;
+    const h = isEx ? rowH + ex * 84 : rowH;
+    const p = outExpo(cl((slide - (i - from) * 0.05) / 0.5));
+    if (p > 0.001) {
+      const dx = (1 - p) * 300;
+      clip(x - 12, cyy - rowH + 4, w + 24, h + 20, () => {
+        text(String(i + 1).padStart(2, "0"), x + dx, cyy, 15, 700, C.blue, { tracking: 2, alpha: 0.9 });
+        text(name, x + 62 + dx, cyy, isEx ? 36 : 28, 700, C.ink);
+        text(tag, x + w - 6, cyy, 13, 500, C.ink, { tracking: 3, alpha: 0.42, align: "right" });
+        if (isEx && ex > 0.04) {
+          text(desc, x + 62 + dx, cyy + 22 + 26 * ex, 17, 400, C.ink, { alpha: 0.6 * cl(ex * 1.5) });
+          // 标签芯片
+          const chips = ["端侧", "语音克隆", "Flutter"];
+          let cx0 = x + 62 + dx;
+          chips.forEach((c, j) => {
+            const cw = measure(c, 14, 500, 2) + 22;
+            const ca = cl((ex - 0.3 - j * 0.12) / 0.4);
+            if (ca > 0) {
+              outline(cx0, cyy + 62, cw, 26, C.blue, 1, ca);
+              text(c, cx0 + 11, cyy + 80, 14, 500, C.blue, { tracking: 2, alpha: ca });
+            }
+            cx0 += cw + 8;
+          });
+        }
+      });
+      line(x, cyy + 13, x + w * p, cyy + 13, C.ink, 1);
+    }
+    cyy += h + (i === expanded ? gap + 8 : gap);
+  }
+}
+function s7(t) {
+  // 纸白面板从下往上顶起来
+  const up = outExpo(p01(t, 18.0, 18.28));
+  fill(C.blue);
+  const P = panel();
+  const py = lerp(H, P.y, up);
+  rect(P.x, py, P.w, P.h, C.paper);
+  outline(P.x, py, P.w, P.h, C.white, 2, up);
+  const x = P.x + 56, w = P.w - 112;
+  const yTop = py + 268;
+  // 标题 + 翻牌计数
+  text("WORK", x, py + 104, 52, 900, C.ink, { tracking: 2 });
+  text("八个自己写的东西", x + measure("WORK", 52, 900, 2) + 22, py + 100, 17, 500, C.ink, { tracking: 2, alpha: 0.45 });
+  const cnt = Math.min(8, Math.floor(cl((t - 18.35) / 0.06)));
+  if (t > 18.35) {
+    flipDigit(x + w - 300, py + 70, String(Math.floor(cnt / 10)), 1, C.ink, 26);
+    flipDigit(x + w - 274, py + 70, String(cnt % 10), 1, C.ink, 26);
+    text("/ 08", x + w - 240, py + 92, 16, 500, C.ink, { tracking: 4, alpha: 0.5 });
+  }
+  // 八格进度
+  const segW = (w * 0.52 - 7 * 6) / 8;
+  for (let i = 0; i < 8; i++) {
+    const on = t > 18.4 + i * 0.055;
+    const bx = x + i * (segW + 6);
+    if (on) rect(bx, py + 128, segW, 6, C.blue);
+    else rect(bx, py + 128, segW, 6, C.ink, 0.14);
+  }
+  // 行：18.3 起滑入，19.1 起滚动，19.9 展开旗舰
+  const slide = p01(t, 18.3, 18.9);
+  const scroll = smooth(p01(t, 19.05, 19.45));
+  const ex = outExpo(p01(t, 19.5, 19.95));
+  const rowH = 40;
+  clip(P.x + 10, py + 150, P.w - 20, P.h - 236, () => {
+    drawRows(t, {
+      x, y: yTop - scroll * 56, w, rowH, gap: 10,
+      slide: 0.3 + slide * 1.6, expanded: scroll > 0.2 ? 0 : -1, ex,
+    });
+  });
+  // 底部：一行统计（尺度对比：大字标题 vs 小字注释）
+  const stat = outExpo(p01(t, 18.9, 19.4));
+  if (stat > 0.001) {
+    const y2 = py + P.h - 54;
+    line(x, y2 - 44, x + w * stat, y2 - 44, C.ink, 1, 0.18);
+    const stats = [["08", "个项目"], ["06", "种技术栈"], ["01", "个人写的"]];
+    let sx = x;
+    stats.forEach(([n, l], i) => {
+      const a = cl((stat - i * 0.12) / 0.6);
+      if (a <= 0.01) return;
+      text(n, sx, y2, 34, 900, C.ink, { alpha: a });
+      text(l, sx + measure(n, 34, 900, 0) + 10, y2 - 2, 13, 500, C.ink, { tracking: 3, alpha: 0.45 * a });
+      sx += 250;
+    });
+    text("全部亲手写 · 无一模板", x + w, y2, 13, 400, C.ink, { tracking: 2, alpha: 0.4 * stat, align: "right" });
+  }
+  // 20.1–21.0 收成八条线，再用一次下压把画面换成墨黑
+  const col = outExpo(p01(t, 20.1, 20.72));
+  if (col > 0.001) {
+    rect(P.x, py, P.w, P.h, C.paper, col * (1 - smooth(p01(t, 20.6, 20.9))));
+    const sweep = inOutExpo(p01(t, 20.62, 20.96));
+    if (sweep > 0.001) rect(0, 0, W, H * sweep, C.ink);
+    for (let i = 0; i < 8; i++) {
+      const yy = lerp(yTop - 60 + i * 56, CODE.y0 + i * CODE.gap - 8, col);
+      const xx = lerp(x, CODE.x - 60, col);
+      const ww = lerp(w, W - M - 120, col);
+      // 扫过这条线之后，线从墨色变白色
+      const passed = cl((H * sweep - yy) / 40);
+      rect(xx, yy, ww, 2, passed > 0.5 ? C.white : C.ink, col);
+    }
+  }
+}
+
+/* ============================ 08 — CODE  21.0 – 24.0 ============================ */
+function s8(t) {
+  fill(C.ink);
+  const lt = t - 21.0;
+  const { x, y0, gap, size } = CODE;
+  if (lt < 1.0) {
+    // 21.0–22.0 打字：底下一层暗线先就位，画面不会空
+    for (let i = 0; i < 8; i++) rect(x - 60, y0 + i * gap - 8, W - M - 120, 2, C.white, 0.16);
+    for (let i = 0; i < 8; i++) {
+      const str = T.code[i];
+      const typed = Math.floor(str.length * outExpo(p01(t, 21.0 + i * 0.035, 21.42 + i * 0.035)));
+      const kw = /^(const|export|door\.open|\/\/)/.test(str);
+      const dim = i === 0 ? 0.55 : 1;
+      text(str.slice(0, typed), x, y0 + i * gap, size, kw ? 700 : 500, kw ? C.blue : C.white, { alpha: dim });
+      text(String(i + 1).padStart(2, "0"), x - 40, y0 + i * gap, 13, 500, C.white, { alpha: 0.26, tracking: 1, align: "right" });
+      if (typed < str.length) {
+        const cw = measure(str.slice(0, typed), size, 700, 0);
+        rect(x + cw + 5, y0 + i * gap - size * 0.74, 12, size * 0.96, C.blue);
+      }
+    }
+  }
+  // 22.0–22.6 字符碎成点 → 网格
+  const shell = outExpo(p01(t, 22.0, 22.34));
+  if (lt >= 0.98 && lt < 1.62) {
+    for (let i = 0; i < 8; i++) {
+      const str = T.code[i];
+      for (let j = 0; j < str.length; j++) {
+        const cw = measure(str.slice(0, j), size, 700, 0);
+        const cx = x + cw + 6, cy = y0 + i * gap - size * 0.32;
+        const p = outExpo(cl((shell - (j * 0.005 + i * 0.012)) / 0.6));
+        if (p < 0.02) continue;
+        if (p < 0.55) text(str[j], cx, y0 + i * gap, size, 700, /^(const|export|\/\/)/.test(str) ? C.blue : C.white, { alpha: 1 - p });
+        circle(cx, cy, lerp(1.2, 3, p), C.white);
+      }
+    }
+  }
+  // 22.5 之后：点阵网格（与取样点数一致）
+  const grid = outExpo(p01(t, 22.46, 22.7));
+  if (NPTS && grid > 0.001) {
+    const N = Math.min(NPTS.length, 44 * 16);
+    for (let i = 0; i < N; i++) {
+      const c = i % 44, r = Math.floor(i / 44);
+      const px = M + 130 + c * 38, py = CY - 224 + r * 28;
+      circle(px, py, 1.4 + 1.6 * grid, C.white);
+    }
+  }
+  // 22.7–23.6 点落到字形上
+  if (NPTS && lt > 1.66) {
+    const base = CY + NAME_STYLE.size * 0.3;
+    const p = outExpo(p01(t, 22.7, 23.3));
+    const N = Math.min(NPTS.length, 44 * 16);
+    for (let i = 0; i < N; i++) {
+      const c = i % 44, r = Math.floor(i / 44);
+      const gx = M + 130 + c * 38, gy = CY - 224 + r * 28;
+      const tx = NPTS[i][0], ty = NPTS[i][1];
+      const q = springy(cl((p - (i / N) * 0.35) / 0.65), 9, 16);
+      circle(lerp(gx, CX + tx, q), lerp(gy, base + ty, q), lerp(1.8, 3.4, q), C.white);
+    }
+    // 23.3–24.0 点连成字，蓝底从字里涨满
+    const eat = outExpo(p01(t, 23.3, 23.6));
+    const solid = outExpo(p01(t, 23.34, 23.55));
+    if (eat > 0.001) {
+      const box = NBOX || { x: -500, y: -300, w: 1000, h: 330 };
+      const g = inOutExpo(p01(t, 23.5, 23.9));
+      const pad = 26;
+      const bw = lerp(box.w + pad * 2, W, g), bh = lerp(box.h + pad * 2, H, g);
+      const bx = lerp(CX + box.x - pad, 0, g), by = lerp(base + box.y - pad, 0, g);
+      if (g > 0.001) rect(bx, by, bw, bh, C.blue);
+      if (eat < 0.98) {
+        for (let i = 0; i < N; i++) circle(CX + NPTS[i][0], base + NPTS[i][1], lerp(3.4, 0.4, eat), C.white);
+      }
+      drawName(base, { alpha: solid });
+    }
+  }
+}
+
+/* ============================ 09 — NAME  24.0 – 27.0 ============================ */
+function nameFrame() {
+  return { w: nameWidth() + 104, h: NAME_STYLE.size * 1.44 };
+}
+function s9(t) {
+  fill(C.blue);
+  const base = CY + NAME_STYLE.size * 0.3;
+  // 24.0–24.7 名字带厚度落位，门框合拢
+  const f = nameFrame();
+  const g = outExpo(p01(t, 24.1, 24.62));
+  const dw = lerp(f.w + 260, f.w, g), dh = lerp(f.h + 240, f.h, g);
+  outline(CX - dw / 2, CY + 6 - dh / 2, dw, dh, C.white, 1.5, 1);
+  const sc = springy(p01(t, 24.7, 25.1), 8, 14);
+  const s2 = lerp(1, 1.1, sc);
+  const depth = 22 * smooth(p01(t, 24.0, 24.4)) * (1 - smooth(p01(t, 24.7, 25.1)));
+  const sp0 = smooth(p01(t, 25.6, 25.95)) * (1 - smooth(p01(t, 26.15, 26.45)));
+  if (sp0 < 0.02) {
+    ctx.save();
+    ctx.translate(CX, CY + 6); ctx.scale(s2, s2); ctx.translate(-CX, -(CY + 6));
+    drawName(base, { depth, dark: "#0A4FB8" });
+    ctx.restore();
+  }
+  const hb = springy(p01(t, 24.4, 24.7), 9, 16);
+  ring(CX + f.w / 2 - 38, CY + 6, 11 * hb, 2, C.white);
+  circle(CX + f.w / 2 - 38, CY + 6, 3 * hb, C.white);
+
+  // 24.7–25.6 顶到框上（s2 在下面用到，先算）
+
+  const lp = outExpo(p01(t, 24.8, 25.2));
+  const sub = `${T.role} · ${T.place}`;
+  const sw = measure(sub, 25, 500, 6);
+  text(sub, CX - sw / 2, CY + f.h / 2 + 76, 25, 500, C.white, { tracking: 6, alpha: lp });
+
+  // 25.6–26.5 三个字分开，各带一行标签
+  const outP = smooth(p01(t, 25.6, 25.95));
+  const backP = smooth(p01(t, 26.15, 26.45));
+  const sp = outP * (1 - backP);
+  if (sp > 0.002) {
+    const runs = glyphRuns(T.name, NAME_STYLE.size, 900, NAME_STYLE.track);
+    const bx0 = CX - runs.width / 2;
+    const chars = [...T.name];
+    const labels = [T.role, T.place, T.focus];
+    const tx = [CX - 520, CX, CX + 520];
+    ctx.save();
+    ctx.textAlign = "left";
+    for (let i = 0; i < 3; i++) {
+      const sz = lerp(NAME_STYLE.size, NAME_STYLE.size * 0.56, sp);
+      const x = lerp(bx0 + runs.xs[i], tx[i] - sz / 2, sp);
+      const y = lerp(base, base - 40, sp);
+      ctx.font = `900 ${sz}px R`;
+      ctx.letterSpacing = "0px";
+      ctx.fillStyle = C.white;
+      ctx.globalAlpha = 1;
+      ctx.fillText(chars[i], x, y);
+      if (sp > 0.05) {
+        const lw = measure(labels[i], 16, 500, 4);
+        text(labels[i], tx[i] - lw / 2, y + 64, 16, 500, C.white, { tracking: 4, alpha: sp * 0.9 });
+        rect(tx[i] - (lw * sp) / 2, y + 82, lw * sp, 1, C.white);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+/* ============================ 10 — CARD  27.0 – 30.0 ============================ */
+function cardLockup(tx, alpha, squeezeX = 1, originX = null) {
+  // 落款：横向压缩以 originX 为轴（收进那条线时用）
+  ctx.save();
+  if (originX != null) {
+    ctx.translate(originX, 0);
+    ctx.scale(Math.max(0.004, squeezeX), 1);
+    ctx.translate(-originX, 0);
+  }
+  text(T.name, tx, 452, 92, 900, C.white, { tracking: 0, alpha });
+  text(T.latin, tx, 494, 19, 500, C.white, { tracking: 13, alpha: alpha * 0.55 });
+  text(`${T.role} · ${T.place}`, tx, 568, 19, 400, C.white, { tracking: 1, alpha: alpha * 0.62 });
+  text(T.motto, tx, 606, 19, 400, C.white, { tracking: 1, alpha: alpha * 0.62 });
+  text(T.url, tx, 668, 21, 700, C.blue, { tracking: 2, alpha });
+  ctx.restore();
+}
+
+function s10(t) {
+  fill(C.ink);
+  const { x, y, w, h } = DOOR;
+
+  // 27.0–27.5 满屏的蓝收成那扇门
+  const g = inOutExpo(p01(t, 27.0, 27.5));
+  const dx = lerp(CX - W / 2, x, g), dy = lerp(CY - H / 2, y, g);
+  const dw = lerp(W, w, g), dh = lerp(H, h, g);
+
+  // 29.4–30.0 收回那条线
+  const p = outExpo(p01(t, 29.42, 29.95));
+  const pw = lerp(dw, 1, p);
+  const tx = x + w + 76;
+
+  if (p < 0.995) {
+    // 门板（带名字）
+    if (pw > 1.6) {
+      rect(dx, dy, pw, dh, C.blue);
+      clip(dx + 1, dy, pw - 2, dh, () => {
+        const ns = 108;
+        const nw = nameWidth(ns, NAME_STYLE.track);
+        const fit = (w * 0.7) / nw;              // 名字正好占门宽 70%
+        const sc2 = fit * lerp(1.05, 1, g);
+        ctx.save();
+        ctx.translate(dx + pw / 2, dy + dh / 2);
+        ctx.scale(sc2, sc2);
+        drawName(ns * 0.34, { size: ns, x: -nw / 2, alpha: (1 - g * 0.3) * (1 - p * 0.8) });
+        ctx.restore();
+      });
+    }
+    rect(dx, dy, 2, dh, C.white);
+    circle(dx + pw - 30, dy + dh / 2, 4, C.white);
+    // 落款：27.5 起逐行出现；29.4 起被吸回那条线
+    const lines = outExpo(p01(t, 27.5, 27.95));
+    if (lines > 0.001) {
+      clip(tx - 8, 300, 980 * lines, 540, () => {
+        cardLockup(tx, 1, p > 0.001 ? 1 - p : 1, x + 1);
+      });
+      const rule = outExpo(p01(t, 27.8, 28.2)) * (1 - p);
+      if (rule > 0.001) rect(tx, 688, 300 * rule, 1, C.blue, 0.9);
+    }
+    // 左侧：八个项目，像片尾字幕
+    const lc = outExpo(p01(t, 27.75, 28.2)) * (1 - smooth(p01(t, 29.3, 29.5)));
+    if (lc > 0.01) {
+      const lx = M + 20;
+      text("SELECTED WORK — 08", lx, 366, 12, 500, C.white, { tracking: 4, alpha: 0.32 * lc });
+      rect(lx, 380, 132 * lc, 1, C.white, 0.24);
+      for (let i = 0; i < 8; i++) {
+        const a = lc * cl((t - 27.95 - i * 0.05) / 0.4);
+        if (a <= 0.01) continue;
+        const yy = 420 + i * 33;
+        text(String(i + 1).padStart(2, "0"), lx, yy, 12, 700, C.blue, { tracking: 2, alpha: 0.85 * a });
+        text(T.projects[i][0], lx + 36, yy, 15, 500, C.white, { alpha: 0.7 * a });
+        text(T.projects[i][1], lx + 286, yy, 10, 500, C.white, { tracking: 2, alpha: 0.28 * a });
+      }
+    }
+    // 28.2–29.4 门框内侧的刻线随拍推进
+    const tick = p01(t, 28.2, 29.4);
+    if (tick > 0.001 && p < 0.01) {
+      for (let i = 0; i < 8; i++) {
+        const a = cl((tick - i * 0.1) / 0.2);
+        rect(x + 26, y + 26, (w - 52) * a, 1, C.white, 0.2);
+      }
+      clip(dx + 2, dy + 2, pw - 4, dh - 4, () =>
+        tickRing(dx + dw / 2, dy + dh / 2, Math.min(pw, dh) * 0.46, 40, tick * 1.6, 8, C.white, 0.13, 1));
+    }
+  }
+  // 收尾帧 = 第一帧：一条线 + 门缝顶端的点
+  rect(x, y, 1, h, C.white);
+  circle(x + 4, lerp(CY, y + 40, p), lerp(4, 5, p), C.white);
+}
+
+/* ---------------------------------- 合成 ---------------------------------- */
+const SCENES = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10];
+
+function drawFrame(t) {
+  reset();
+  const i = cl(Math.floor(t / SCENE), 0, 9);
+  SCENES[i](t);
+  hud(t, i === 3 || i === 4 || i === 6);
+}
+
+window.seek = (t) => { drawFrame(cl(t, 0, DUR - 0.0001)); return true; };
+
+/* 快门：每帧取 3 个子帧，子帧不越过本拍开头，切换处不会双影 */
+const _acc = document.createElement("canvas");
+_acc.width = W; _acc.height = H;
+const _accCtx = _acc.getContext("2d", { alpha: false });
+window.renderFrame = (t, subframes = 3) => {
+  const tt = cl(t, 0, DUR - 0.0001);
+  const shot = Math.floor(tt / BEAT) * BEAT;
+  _accCtx.setTransform(1, 0, 0, 1, 0, 0);
+  _accCtx.globalCompositeOperation = "source-over";
+  _accCtx.globalAlpha = 1;
+  _accCtx.fillStyle = "#000";
+  _accCtx.fillRect(0, 0, W, H);
+  _accCtx.globalCompositeOperation = "lighter";
+  _accCtx.globalAlpha = 1 / subframes;
+  for (let k = 0; k < subframes; k++) {
+    const ts = Math.max(shot, tt - (k / subframes) * (1 / 60));
+    drawFrame(ts);
+    _accCtx.drawImage(canvas, 0, 0);
+  }
+  _accCtx.globalCompositeOperation = "source-over";
+  reset();
+  ctx.drawImage(_acc, 0, 0);
+  return true;
+};
+
+window.__ready = false;
+(async () => {
+  try { sampleName(); } catch (e) { console.error(e); }
+  await document.fonts.load("900 100px R");
+  await document.fonts.load("700 100px R");
+  await document.fonts.load("500 100px R");
+  await document.fonts.load("400 100px R");
+  await document.fonts.ready;
+  sampleName();
+  NMASK = buildNameMask(LAT.cols, LAT.rows);
+  window.renderFrame(0);
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
