@@ -135,7 +135,16 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer;}
 }
 #panel-close:hover{background:var(--ctl-hi); transform:rotate(90deg);}
 #panel-close svg{width:13px; height:13px; stroke:var(--ink-soft); stroke-width:2; fill:none; stroke-linecap:round;}
-#panel-flip{perspective:900px; overflow:hidden auto; padding:10px 20px 20px; scrollbar-width:thin;}
+#panel-flip{
+  perspective:900px; overflow:hidden auto; padding:10px 20px 20px;
+  scrollbar-width:thin; scrollbar-color:var(--ctl-line) transparent;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
+}
+#panel-flip::-webkit-scrollbar{width:6px;}
+#panel-flip::-webkit-scrollbar-track{background:transparent;}
+#panel-flip::-webkit-scrollbar-thumb{background:var(--ctl-line); border-radius:99px;}
+#panel-flip::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 #panel-body{transform-origin:50% 0; transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .32s;}
 #panel-flip.flip-out #panel-body{transform:rotateX(-72deg); opacity:0;}
 #panel-flip.flip-in #panel-body{animation:flipIn .38s cubic-bezier(.22,1,.36,1);}
@@ -172,36 +181,100 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer;}
 .book em{font-style:normal; color:var(--accent-ink); font-weight:600; flex:0 0 auto;}
 .book span{color:var(--ink-soft); font-size:12px; margin-left:auto; text-align:right;}
 /* 便签墙 */
-.note-list{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px; max-height:34vh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.nw-stat{display:flex; align-items:center; gap:8px; margin:0 0 11px; font-size:10.5px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted);}
+.nw-stat b{color:var(--accent-ink); font-weight:600; letter-spacing:.08em;}
+.nw-stat i{font-style:normal; margin-left:auto; text-transform:none; letter-spacing:.04em; opacity:.8;}
+.nw-wall{
+  position:relative; margin:0 0 14px; padding:2px 3px 2px 2px;
+  max-height:min(32vh,215px); overflow-y:auto; overscroll-behavior:contain;
+  scrollbar-width:thin; scrollbar-color:rgba(140,140,160,.35) transparent;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 11px,#000 calc(100% - 14px),transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 11px,#000 calc(100% - 14px),transparent 100%);
+}
+.nw-wall::before{content:""; position:absolute; inset:0 6px 0 0; pointer-events:none; border-radius:8px;
+  box-shadow:inset 0 12px 14px -14px rgba(0,0,0,.55), inset 0 -12px 14px -14px rgba(0,0,0,.45);}
+.nw-wall::-webkit-scrollbar{width:6px;}
+.nw-wall::-webkit-scrollbar-track{background:transparent;}
+.nw-wall::-webkit-scrollbar-thumb{background:rgba(140,140,160,.32); border-radius:99px;}
+.nw-wall::-webkit-scrollbar-thumb:hover{background:rgba(140,140,160,.6);}
+
 .note-card{
-  padding:10px 12px 9px; border-radius:10px; background:#efe6c4; color:#3a3323;
-  box-shadow:0 1px 0 rgba(0,0,0,.06), 0 6px 14px -10px rgba(0,0,0,.5);
-  transform:rotate(-.35deg); animation:noteIn .32s cubic-bezier(.34,1.4,.64,1) both;
+  position:relative; padding:11px 13px 9px; margin:0 0 9px; border-radius:3px 3px 3px 13px;
+  background:
+    repeating-linear-gradient(0deg, rgba(150,132,80,.045) 0 1px, transparent 1px 4px),
+    linear-gradient(167deg,#f4ecd0 0%,#e9dfb9 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.75) inset, 0 1px 2px rgba(24,20,8,.10),
+             0 14px 26px -20px rgba(24,20,8,.95);
+  color:#3b3423; transform:rotate(-.3deg);
+  animation:nwIn .44s cubic-bezier(.22,1,.36,1) both;
+  transition:transform .26s cubic-bezier(.34,1.4,.64,1), box-shadow .26s;
 }
-.note-card:nth-child(even){transform:rotate(.4deg); background:#e6e8d2;}
-.note-card b{display:block; font-size:13px; line-height:1.6; font-weight:500; word-break:break-word;}
-.note-card span{display:block; font-size:10.5px; color:#8a8168; margin-top:5px; letter-spacing:.02em;}
-@keyframes noteIn{from{opacity:0; transform:translateY(6px) rotate(-1deg) scale(.97);}}
-.note-empty{font-size:12.5px; color:var(--muted); padding:14px 4px; text-align:center;}
-.note-form{display:flex; flex-direction:column; gap:8px; padding-top:12px; border-top:1px dashed var(--ctl-line);}
-.note-form textarea{
-  width:100%; min-height:56px; resize:none; padding:10px 12px; border-radius:11px; font:inherit; font-size:13px;
-  background:var(--ctl); color:var(--ink); border:1px solid var(--ctl-line); outline:none; line-height:1.55;
+.note-card:hover{
+  transform:rotate(0deg) translateY(-1px);
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 1px 2px rgba(24,20,8,.12),
+             0 18px 30px -20px rgba(24,20,8,.9);
 }
-.note-form textarea:focus{border-color:var(--accent);}
-.note-row{display:flex; gap:8px; align-items:center;}
-.note-row input{
-  flex:1 1 auto; min-width:0; padding:8px 11px; border-radius:10px; font:inherit; font-size:12.5px;
+.note-card:nth-child(even){
+  transform:rotate(.32deg);
+  background:
+    repeating-linear-gradient(0deg, rgba(150,132,80,.045) 0 1px, transparent 1px 4px),
+    linear-gradient(167deg,#f2f0da 0%,#e5e4c2 100%);
+}
+.note-card:nth-child(3n){transform:rotate(-.55deg);}
+.note-card::after{
+  content:""; position:absolute; right:0; bottom:0; width:15px; height:15px; border-radius:0 0 0 3px;
+  background:linear-gradient(135deg, rgba(255,255,255,0) 45%, rgba(186,172,124,.5) 50%, rgba(219,208,164,.98) 100%);
+}
+.note-card b{display:block; font-size:13px; line-height:1.72; font-weight:500; letter-spacing:.01em; word-break:break-word;}
+.nc-meta{display:flex; align-items:center; gap:7px; margin-top:8px; font-size:10px;
+  letter-spacing:.09em; color:#8d8465;}
+.nc-meta u{text-decoration:none; border-bottom:1px solid rgba(141,132,101,.42); padding-bottom:1px; max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.nc-meta em{font-style:normal; margin-left:auto; opacity:.85;}
+.note-card.is-new{box-shadow:0 0 0 1px rgba(10,132,255,.34), 0 1px 2px rgba(24,20,8,.12), 0 16px 28px -20px rgba(24,20,8,.95);}
+@keyframes nwIn{from{opacity:0; transform:translateY(11px) rotate(-1.4deg) scale(.97);}}
+
+.nw-empty{display:flex; flex-direction:column; align-items:center; gap:9px; padding:28px 12px 30px;
+  border:1px dashed var(--ctl-line); border-radius:13px; background:var(--ctl);
+  color:var(--muted); font-size:12.5px; letter-spacing:.02em;}
+.nw-empty svg{width:26px; height:26px; stroke:var(--muted); fill:none; stroke-width:1.3; opacity:.6;}
+.nw-retry{
+  margin-top:2px; padding:6px 14px; border-radius:99px; font:inherit; font-size:11.5px; cursor:pointer;
+  background:var(--ctl-hi); color:var(--ink-soft); border:1px solid var(--ctl-line);
+  transition:border-color .2s, color .2s;
+}
+.nw-retry:hover{border-color:var(--accent); color:var(--accent-ink);}
+
+.nw-form{padding-top:14px; border-top:1px dashed var(--ctl-line);}
+.nw-field{position:relative;}
+.nw-field textarea{
+  width:100%; min-height:58px; resize:none; padding:11px 13px 13px; border-radius:12px;
+  font:inherit; font-size:13px; line-height:1.62; background:var(--ctl); color:var(--ink);
+  border:1px solid var(--ctl-line); outline:none;
+  transition:border-color .2s, background-color .2s;
+}
+.nw-field textarea:focus{border-color:var(--accent); background:var(--ctl-hi);}
+.nw-bar{height:2px; margin:7px 3px 0; border-radius:99px; background:var(--ctl-line); overflow:hidden;}
+.nw-bar i{display:block; height:100%; width:0; border-radius:99px; background:var(--accent);
+  transition:width .22s cubic-bezier(.4,0,.2,1), background-color .2s;}
+.nw-row{display:flex; gap:8px; align-items:center; margin-top:11px;}
+.nw-row input{
+  flex:1 1 auto; min-width:0; padding:9px 12px; border-radius:11px; font:inherit; font-size:12.5px;
   background:var(--ctl); color:var(--ink); border:1px solid var(--ctl-line); outline:none;
+  transition:border-color .2s;
 }
-.note-row input:focus{border-color:var(--accent);}
-.note-row button{
-  flex:0 0 auto; padding:8px 16px; border-radius:10px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
-  background:var(--accent); color:#fff; border:0; transition:transform .18s, opacity .2s;
+.nw-row input:focus{border-color:var(--accent);}
+.nw-send{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:9px 15px 9px 13px;
+  border-radius:11px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+  background:var(--accent); color:#fff; border:0;
+  box-shadow:0 8px 18px -12px var(--accent);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), opacity .2s, box-shadow .2s;
 }
-.note-row button:hover{transform:translateY(-1px);}
-.note-row button:disabled{opacity:.5; cursor:default; transform:none;}
-.note-foot{display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted);}
+.nw-send svg{width:14px; height:14px; fill:none; stroke:#fff; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round;}
+.nw-send:hover{transform:translateY(-1px); box-shadow:0 12px 22px -13px var(--accent);}
+.nw-send:active{transform:translateY(0) scale(.98);}
+.nw-send:disabled{opacity:.45; cursor:default; transform:none; box-shadow:none;}
 /* 抽屉 */
 .drw{display:block; margin:0 0 12px; border-radius:12px; overflow:hidden; background:var(--ctl); border:1px solid var(--ctl-line);}
 .drw img{display:block; width:100%; height:auto; background:#0b0d12;}
@@ -695,13 +768,16 @@ body.warp-back #site{
 @keyframes slide{to{transform:translateX(-50%);}}
 
 /* ---------- 自定义滚动条 ---------- */
-#site::-webkit-scrollbar{width:10px;}
+#site{scrollbar-width:thin; scrollbar-color:rgba(128,128,148,.30) transparent;}
+#site::-webkit-scrollbar{width:11px;}
 #site::-webkit-scrollbar-track{background:transparent;}
 #site::-webkit-scrollbar-thumb{
-  background:linear-gradient(180deg, rgba(10,132,255,.55), rgba(255,176,102,.5));
-  border-radius:99px; border:3px solid transparent; background-clip:content-box;
+  background:linear-gradient(180deg, rgba(128,128,148,.34), rgba(128,128,148,.24));
+  border-radius:99px; border:4px solid transparent; background-clip:content-box;
+  transition:background .2s;
 }
-#site::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg, rgba(10,132,255,.85), rgba(255,176,102,.8)); background-clip:content-box;}
+#site:hover::-webkit-scrollbar-thumb{background:linear-gradient(180deg, rgba(128,128,148,.46), rgba(128,128,148,.32)); background-clip:content-box;}
+#site::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg, rgba(10,132,255,.55), rgba(255,176,102,.5)); background-clip:content-box;}
 
 /* ---------- 门口"镜头前置"：滚到大门时门变大变亮 ---------- */
 #door-big{
@@ -2319,14 +2395,17 @@ const PANELS={
     title:"便签墙", sub:"桌上那叠便利贴", ico:ICONS.about,
     html(){
       return `<p class="p-lead">路过的人可以撕一张贴上去。最多 48 个字，贴完就留在这儿了。</p>
-        <div class="note-list" id="note-list"><div class="note-empty">正在把墙上的便签取下来…</div></div>
-        <div class="note-form">
-          <textarea id="note-text" maxlength="48" placeholder="写点什么，贴在墙上…"></textarea>
-          <div class="note-row">
-            <input id="note-name" maxlength="12" placeholder="留个名字（可不填）">
-            <button id="note-send">贴上去</button>
+        <div class="nw-stat"><b id="note-total">墙上 —</b><i id="note-latest"></i></div>
+        <div class="nw-wall" id="note-list"></div>
+        <div class="nw-form">
+          <div class="nw-field">
+            <textarea id="note-text" maxlength="48" placeholder="写点什么，贴在墙上…"></textarea>
+            <div class="nw-bar"><i id="note-bar"></i></div>
           </div>
-          <div class="note-foot"><span id="note-total"></span><span id="note-count"></span></div>
+          <div class="nw-row">
+            <input id="note-name" maxlength="12" placeholder="署名（可不填）">
+            <button class="nw-send" id="note-send"><svg viewBox="0 0 24 24"><path d="M12 15.5V4.5M7.5 9L12 4.5 16.5 9M5 19.5h14"/></svg>贴上</button>
+          </div>
         </div>`;
     },
     after(){ notesWire(); }
@@ -2509,31 +2588,51 @@ const noteTime=(ts)=>{
   if(diff<86400*30) return Math.floor(diff/86400)+" 天前";
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
 };
-function noteCard(n){
-  const el=document.createElement("div"); el.className="note-card";
+function noteCard(n, isNew){
+  const el=document.createElement("div"); el.className="note-card"+(isNew?" is-new":"");
   const b=document.createElement("b"); b.textContent=n.text;
-  const sp=document.createElement("span");
-  sp.textContent=(n.name?n.name+" · ":"")+noteTime(n.at);
-  el.appendChild(b); el.appendChild(sp); return el;
+  const meta=document.createElement("span"); meta.className="nc-meta";
+  if(n.name){ const u=document.createElement("u"); u.textContent=n.name; meta.appendChild(u); }
+  const em=document.createElement("em"); em.textContent=noteTime(n.at); meta.appendChild(em);
+  el.appendChild(b); el.appendChild(meta);
+  return el;
 }
 function notesWire(){
   const list=$("#note-list"), text=$("#note-text"), name=$("#note-name"),
-        send=$("#note-send"), count=$("#note-count"), total=$("#note-total");
+        send=$("#note-send"), bar=$("#note-bar"), total=$("#note-total"), latest=$("#note-latest");
   if(!list) return;
+  const empty=()=>{
+    list.innerHTML='<div class="nw-empty"><svg viewBox="0 0 24 24"><path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v14L12 16l-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/></svg><span>墙上还是空的，第一张留给你</span></div>';
+  };
   const setList=(notes)=>{
     list.innerHTML="";
-    if(!notes.length){ const e=document.createElement("div"); e.className="note-empty";
-      e.textContent="墙上还是空的。第一张留给你。"; list.appendChild(e); return; }
-    notes.forEach(n=>list.appendChild(noteCard(n)));
+    if(!notes.length){ empty(); return; }
+    notes.forEach((n,i)=>{
+      const el=noteCard(n,i===0);
+      el.style.animationDelay=Math.min(i*45,360)+"ms";
+      list.appendChild(el);
+    });
+  };
+  const setTotal=(n,ts)=>{
+    if(total) total.textContent="墙上 "+n+" 张";
+    if(latest) latest.textContent = ts ? "最新 "+noteTime(ts) : "";
   };
   fetch(NOTE_API+"?limit=40").then(r=>r.json()).then(d=>{
     noteTotal=d.total||0;
-    setList(d.notes||[]);
-    if(total) total.textContent="墙上 "+noteTotal+" 张";
+    const arr=d.notes||[];
+    setList(arr);
+    setTotal(noteTotal, arr.length?arr[0].at:0);
   }).catch(()=>{
-    list.innerHTML='<div class="note-empty">留言板连不上，先看看屋子吧。</div>';
+    list.innerHTML='<div class="nw-empty"><svg viewBox="0 0 24 24"><path d="M12 3.5v10M12 17.5v.01"/></svg>'
+      +'<span>留言板连不上，先看看屋子吧</span>'
+      +'<button class="nw-retry" id="note-retry">再试一次</button></div>';
+    if(total) total.textContent="墙上 —";
+    const rb=$("#note-retry"); if(rb) rb.addEventListener("click",()=>{ setList([]); notesWire(); });
   });
-  const left=()=>{ if(count) count.textContent="还能写 "+(48-(text.value||"").length)+" 字"; };
+  const left=()=>{
+    const n=(text.value||"").length, pct=Math.min(100, n/48*100);
+    if(bar){ bar.style.width=pct+"%"; bar.style.background = n>40 ? "var(--warn,#e0863b)" : "var(--accent)"; }
+  };
   text.addEventListener("input",left); left();
   const post=()=>{
     const t=(text.value||"").trim();
@@ -2544,14 +2643,17 @@ function notesWire(){
       .then(r=>r.json())
       .then(d=>{
         if(d.error){ toast(d.error); send.disabled=false; return; }
-        Audio8.flip();
-        if(list.querySelector(".note-empty")) list.innerHTML="";
-        list.insertBefore(noteCard(d.note),list.firstChild);
+        try { Audio8.flip(); } catch(e) {}
+        if(list.querySelector(".nw-empty")) list.innerHTML="";
+        const el=noteCard(d.note,true);
+        list.insertBefore(el,list.firstChild);
+        list.querySelectorAll(".note-card").forEach((c,i)=>{ if(i>0) c.classList.remove("is-new"); });
         text.value=""; left(); send.disabled=false;
         toast("贴上了，谢谢你来");
         noteTotal=d.total||(noteTotal+1);
-        if(total) total.textContent="墙上 "+noteTotal+" 张";
+        setTotal(noteTotal, d.note.at);
         try { fnPaintNote(d.note.text); } catch(e) {}
+        list.scrollTop=0;
       })
       .catch(()=>{ toast("没贴上，网络好像不太顺"); send.disabled=false; });
   };
