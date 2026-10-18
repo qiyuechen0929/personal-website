@@ -836,6 +836,19 @@ body.mode-site #visit-pill{opacity:0 !important; transform:translateY(10px) !imp
 #visit-pill .vc-sep{opacity:.35}
 body.mode-space #visit-pill{opacity:.3}
 
+/* ---------------- 深夜三点 ---------------- */
+#late-hud{
+  position:fixed; left:50%; bottom:34px; transform:translate(-50%,10px); z-index:35;
+  display:flex; align-items:center; gap:9px;
+  font-size:12px; letter-spacing:.14em; color:rgba(190,210,240,.62);
+  opacity:0; pointer-events:none; transition:opacity 1.6s ease, transform 1.6s ease;
+  text-shadow:0 1px 14px rgba(0,0,0,.6);
+}
+#late-hud.on{ opacity:1; transform:translate(-50%,0); }
+#late-hud i{ width:5px; height:5px; border-radius:50%; background:#6f8fc4; box-shadow:0 0 10px #6f8fc4; animation:lh 3.4s ease-in-out infinite; }
+@keyframes lh{ 0%,100%{opacity:.35} 50%{opacity:1} }
+@media (max-width:560px){ #late-hud{ bottom:70px; font-size:11px; } }
+
 /* ---------------- 手机横屏：游戏式 HUD ---------------- */
 #rotate-hint{
   position:fixed; left:50%; bottom:26px; transform:translate(-50%,16px); z-index:60;
@@ -1379,6 +1392,7 @@ a.card{text-decoration:none; color:inherit; display:block;}
   <div><b>点击发光物件</b><span>看看里面藏着什么</span></div>
   <div><b>点窗户</b><span>让时间快进到白天</span></div>
   <div><b>右上角相机</b><span>把此刻这间屋子存成一张名片</span></div>
+  <div><b>连点台灯三次</b><span>凌晨三点，窗外会下雨</span></div>
   <div><b>点台灯</b><span>开关灯</span></div>
   <div><b>点猫</b><span>试试看</span></div>
   <div><kbd>1</kbd>–<kbd>4</kbd> <kbd>Esc</kbd> <kbd>M</kbd><span>快捷键</span></div>
@@ -1532,6 +1546,39 @@ const Audio8 = {
   },
   blip(){ this.tone(880,660,.09,"sine",.10); },
   tvOn(){ this.tone(1600,120,.14,"square",.045); this.noise(.16,.09,2200,9000); this.tone(70,42,.22,"sine",.16,.04); },
+  rainStart(){
+    this.init(); if(!this.ctx || this.rain) return;
+    const sr=this.ctx.sampleRate, n=sr*4;
+    const buf=this.ctx.createBuffer(1,n,sr), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*.55;
+    const src=this.ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+    const hp=this.ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=900;
+    const lp=this.ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=5200;
+    const g=this.ctx.createGain(); g.gain.value=0;
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(this.master);
+    src.start(this.now());
+    g.gain.linearRampToValueAtTime(.11, this.now()+2.4);
+    this.rain={src,g,lp};
+    // 偶尔一滴
+    const drop=()=>{
+      if(!this.rain) return;
+      this.tone(900+Math.random()*700, 220, .06, "sine", .02+Math.random()*.02);
+      this.rainTimer=setTimeout(drop, 900+Math.random()*2600);
+    };
+    drop();
+  },
+  rainStop(){
+    if(!this.rain) return;
+    clearTimeout(this.rainTimer);
+    try{
+      const {src,g}=this.rain, t=this.now();
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value,t);
+      g.gain.linearRampToValueAtTime(0,t+1.2);
+      src.stop(t+1.4);
+    }catch(e){}
+    this.rain=null;
+  },
   shutter(){ this.noise(.06,.18,1400,6000); this.tone(2200,1600,.05,"square",.03,.06); },
   hoverBlip(){ this.tone(1320,1560,.05,"sine",.035); },
   lampClick(){ this.noise(.04,.2,2600); this.tone(140,90,.12,"triangle",.22); },
@@ -1601,8 +1648,9 @@ const sky={ canvas:makeCanvas(512,320), stars:[], dirty:true };
 for(let i=0;i<90;i++) sky.stars.push({x:Math.random(),y:Math.random()*.7,r:Math.random()*1.3+.4,tw:Math.random()*6});
 function drawSky(mix,t){
   const g=sky.canvas.getContext("2d"), W=512,H=320;
-  const top=[lerp(10,110,mix)|0, lerp(13,175,mix)|0, lerp(34,225,mix)|0];
-  const bot=[lerp(38,208,mix)|0, lerp(46,232,mix)|0, lerp(84,250,mix)|0];
+  const late=(typeof lateNight!=="undefined"&&lateNight)?1:0;
+  const top=[lerp(lerp(10,4,late),110,mix)|0, lerp(lerp(13,6,late),175,mix)|0, lerp(lerp(34,20,late),225,mix)|0];
+  const bot=[lerp(lerp(38,12,late),208,mix)|0, lerp(lerp(46,18,late),232,mix)|0, lerp(lerp(84,40,late),250,mix)|0];
   const grad=g.createLinearGradient(0,0,0,H);
   grad.addColorStop(0,`rgb(${top[0]},${top[1]},${top[2]})`);
   grad.addColorStop(1,`rgb(${bot[0]},${bot[1]},${bot[2]})`);
@@ -1625,6 +1673,17 @@ function drawSky(mix,t){
     g.fillStyle="#f7f3df"; g.beginPath(); g.arc(mx,my,30,0,7); g.fill();
     g.fillStyle=grad; g.beginPath(); g.arc(mx+13,my-7,26,0,7); g.fill();
     g.globalAlpha=1;
+  }
+  if(late){ // 雨：斜着往下掉
+    g.strokeStyle="rgba(170,200,240,.34)"; g.lineWidth=1;
+    const speed=260;
+    for(let i=0;i<70;i++){
+      const seed=i*37.7;
+      const x=((seed*13.3+t*38)%(W+120))-60;
+      const y=((seed*7.9+t*speed)%(H+80))-40;
+      g.beginPath(); g.moveTo(x,y); g.lineTo(x-7,y+26); g.stroke();
+    }
+    g.fillStyle="rgba(120,150,190,.05)"; g.fillRect(0,0,W,H);
   }
   if(mix>.02){ // 太阳
     g.globalAlpha=mix;
@@ -1770,6 +1829,13 @@ function initThree(){
   const skyPlane=new THREE.Mesh(new THREE.PlaneGeometry(fw-.05,fh-.05),
     new THREE.MeshBasicMaterial({map:skyTex}));
   skyPlane.position.z=-.12; winG.add(skyPlane);
+  // 雨幕：独立一层，透明，只在深夜模式可见
+  const rainCv=makeCanvas(256,192);
+  const rainTex=new THREE.CanvasTexture(rainCv);
+  const rainMesh=new THREE.Mesh(new THREE.PlaneGeometry(fw-.08,fh-.08),
+    new THREE.MeshBasicMaterial({map:rainTex,transparent:true,opacity:0,depthWrite:false}));
+  rainMesh.position.z=.075; winG.add(rainMesh);   // 世界坐标约 -4.40，落在窗框前面
+  room.rainMesh=rainMesh; room.rainCv=rainCv; room.rainCtx=rainCv.getContext("2d"); room.rainTex=rainTex;
   const sill=box(fw+.4,.09,.3,frameMat); sill.position.set(0,-fh/2-.06,.1); winG.add(sill);
   scene.add(winG);
   room.winGlow=new THREE.Mesh(new THREE.PlaneGeometry(fw+.9,fh+.8),
@@ -2081,6 +2147,18 @@ function applyDayNight(m,t){
   room.dust.material.opacity=lerp(.5,.22,m);
   const bg=new THREE.Color().lerpColors(new THREE.Color(0x0b0d16),new THREE.Color(0x9fc8e8),m);
   scene.background=bg; scene.fog.color.copy(bg);
+  if(lateNight){
+    // 三点：只剩显示器和一点窗外的冷光
+    hemi.intensity=.13; sun.intensity=.08;
+    hemi.color.setHex(0x2b3a55); hemi.groundColor.setHex(0x0a0b10);
+    lampSpot.intensity*= .45; lampFill.intensity*= .4;
+    screenGlow.intensity=1.15;
+    room.winGlow.material.color.setHex(0x4a6fa8);
+    room.winGlow.material.opacity=.05;
+    scene.background.setHex(0x05060b); scene.fog.color.setHex(0x05060b);
+    room.flies.material.opacity=.15;
+    document.documentElement.dataset.theme="dark";
+  }
   document.documentElement.dataset.theme=m>.5?"light":"dark";
   drawSky(m,t||0);
   sky.tex.needsUpdate=true;
@@ -2098,6 +2176,15 @@ function toggleDay(){
       toast(to? "太阳出来了，猫换了个姿势继续睡":"夜幕降临，台灯又成了主角"); }});
 }
 function toggleLamp(){
+  // 连点三次 → 凌晨三点
+  const now=Date.now();
+  lampHits=lampHits.filter(t=>now-t<1600);
+  lampHits.push(now);
+  if(lampHits.length>=3){
+    lampHits=[];
+    setLateNight(!lateNight);
+    return;
+  }
   lampOn=!lampOn; Audio8.lampClick();
   const from=lampFade, to=lampOn?1:0;
   tween({dur:lampOn?450:260, ease:lampOn?easeOut:easeIO,
@@ -2292,6 +2379,47 @@ let toastTimer=null;
 function toast(msg){
   const t=$("#toast"); t.textContent=msg; t.classList.add("on");
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),2200);
+}
+
+/* ---------------- 深夜模式 ---------------- */
+let lateNight=false, lateHud=null, lampHits=[], lampTimer=0, musicWasOn=false;
+
+function setLateNight(on){
+  if(lateNight===on) return;
+  lateNight=on;
+  if(on){
+    musicWasOn=!!Audio8.on;
+    if(Audio8.on) Audio8.musicStop();
+    Audio8.rainStart();
+    lampOn=true; lampFade=.35;
+    Audio8.lampClick();
+    // 猫挪到桌上
+    if(room.cat && room.catState){
+      room.catState.mode="sleep"; room.catState.nextWalk=1e9;
+      room.cat.position.set(1.78,1.0,-3.02);
+      room.cat.rotation.y=-1.9;
+    }
+    if(!lateHud){
+      lateHud=document.createElement("div");
+      lateHud.id="late-hud";
+      lateHud.innerHTML='<i></i>3:00 AM · 睡不着';
+      document.body.appendChild(lateHud);
+    }
+    requestAnimationFrame(()=>lateHud.classList.add("on"));
+    applyDayNight(0, clock.elapsedTime);
+    toast("灯闪了三下。窗外开始下雨。");
+  }else{
+    Audio8.rainStop();
+    if(musicWasOn && !Audio8.on) Audio8.musicStart();
+    if(room.cat && room.catState){
+      room.catState.nextWalk=0;
+      room.cat.position.set(.9,0,-1.1);
+      room.cat.rotation.y=2.4;
+    }
+    if(lateHud) lateHud.classList.remove("on");
+    applyDayNight(dayMix, clock.elapsedTime);
+    toast("雨停了，屋子回到原来的样子");
+  }
 }
 
 /* ---------------- 拍名片 ---------------- */
@@ -2609,6 +2737,29 @@ function animate(){
     room.steam.geometry.attributes.position.needsUpdate=true;
     room.steam.material.opacity=.3*(.4+.6*Math.sin(t*.5)*.5+.5);
   }
+  // 窗外下雨（深夜模式）
+  if(room.rainMesh){
+    const want = lateNight ? .95 : 0;
+    const cur = room.rainMesh.material.opacity;
+    if(Math.abs(cur-want) > .01){
+      room.rainMesh.material.opacity = cur + (want-cur)*.06;
+    }
+    if(lateNight){
+      const c=room.rainCtx, W=room.rainCv.width, H=room.rainCv.height;
+      c.clearRect(0,0,W,H);
+      c.strokeStyle="rgba(186,214,255,.55)"; c.lineWidth=1.1;
+      for(let i=0;i<48;i++){
+        const seed=i*97.13;
+        const x=((seed*3.7+t*46)%(W+60))-30;
+        const y=((seed*11.3+t*280)%(H+60))-30;
+        const len=10+((i*7)%12);
+        c.beginPath(); c.moveTo(x,y); c.lineTo(x-4,y+len); c.stroke();
+      }
+      // 玻璃上的一点水光
+      c.fillStyle="rgba(150,185,235,.05)"; c.fillRect(0,0,W,H);
+      room.rainTex.needsUpdate=true;
+    }
+  }
   // 猫：呼吸 / 散步
   {
     const c=room.cat, st=room.catState;
@@ -2916,6 +3067,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
   const OUTSIDE = { yaw: .9, pitch: .42, radius: 11.5, tx: 1.2, ty: 1.2, tz: -.5 };
   function exitSpace(origin) {
     if (busy || mode !== "space") return;
+    if (lateNight) setLateNight(false);
     exitImmersive();
     busy = true;
     const o = origin || document.getElementById("st-enter");
