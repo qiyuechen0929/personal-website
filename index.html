@@ -835,6 +835,58 @@ body.warp-back #site{
 body.mode-site #visit-pill{opacity:0 !important; transform:translateY(10px) !important; pointer-events:none !important;}
 #visit-pill .vc-sep{opacity:.35}
 body.mode-space #visit-pill{opacity:.3}
+
+/* ---------------- 手机横屏：游戏式 HUD ---------------- */
+#rotate-hint{
+  position:fixed; left:50%; bottom:26px; transform:translate(-50%,16px); z-index:60;
+  display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:999px;
+  font-size:12.5px; color:var(--ink); opacity:0; pointer-events:none;
+  transition:opacity .5s ease, transform .5s cubic-bezier(.2,1.2,.3,1); white-space:nowrap;
+}
+#rotate-hint.on{ opacity:1; transform:translate(-50%,0); pointer-events:auto; cursor:pointer; }
+#rotate-hint svg{ width:18px; height:18px; stroke:var(--accent); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; animation:rh 2.6s ease-in-out infinite; }
+@keyframes rh{ 0%,100%{transform:rotate(0)} 45%{transform:rotate(-88deg)} 70%{transform:rotate(-88deg)} }
+
+@media (max-width:560px){
+  /* 手机竖屏：把顶栏压扁，五颗按钮要放得下 */
+  #topbar{ top:10px; left:10px; right:10px; gap:6px; }
+  #brand{ display:none; }
+  #tools{ margin-left:auto; gap:6px; }
+  .tbtn{ width:38px; height:38px; border-radius:12px; }
+  .tbtn svg{ width:17px; height:17px; }
+  #rotate-hint{ top:72px; bottom:auto; font-size:12px; padding:9px 14px; max-width:calc(100vw - 32px); }
+  #rotate-hint.on{ transform:translate(-50%,0); }
+  /* 手机底部太挤：提示条只留一行，超出省略 */
+  #hint{
+    left:auto; right:10px; bottom:14px; transform:none;
+    max-width:calc(100vw - 150px); font-size:10.5px; padding:6px 10px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #hint.on{ transform:none; }
+}
+@media (max-height:520px) and (orientation:landscape){
+  #topbar{ padding:8px 10px; }
+  #brand{ padding:6px 10px; gap:6px; }
+  #brand small{ display:none; }
+  #brand b{ font-size:12.5px; }
+  #tools{ gap:6px; }
+  .tbtn{ width:34px; height:34px; border-radius:11px; }
+  .tbtn svg{ width:16px; height:16px; }
+  #hint{ bottom:10px; font-size:11px; padding:6px 12px; }
+  #explore{ transform-origin:bottom left; }
+  #panel{ max-height:calc(100% - 24px); }
+}
+@media (orientation:landscape) and (max-height:430px){
+  #hint{ display:none; }
+}
+/* 横屏手机：面板别顶出去，视频按高度收 */
+@media (orientation:landscape) and (max-height:520px){
+  #panel{ width:min(760px, 94vw); max-height:calc(100vh - 16px); overflow-y:auto; padding:14px 16px 18px; }
+  .tv-wrap{ width:max-content; max-width:100%; margin:0 auto 10px; }
+  .tv-video{ max-height:42vh; width:auto; max-width:100%; display:block; }
+  #panel-body{ padding-bottom:4px; }
+}
+
 @media (max-width:760px){
   #visit-hero{font-size:12.5px; padding:9px 14px}
   #visit-hero b{font-size:14px}
@@ -1643,7 +1695,7 @@ function drawTerm(t){
 /* ---------------- 场景搭建 ---------------- */
 function initThree(){
   renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"low-power",preserveDrawingBuffer:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, IS_PHONE ? 1.25 : 1.5));
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -1657,6 +1709,7 @@ function initThree(){
   scene.fog=new THREE.Fog(0x0b0d16,18,34);
 
   camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);
+  camera.fov=fitFov(camera.aspect); camera.updateProjectionMatrix();
 
   /* 灯光 */
   hemi=new THREE.HemisphereLight(0x33415e,0x1a1410,.32); scene.add(hemi);
@@ -2330,6 +2383,52 @@ function hideDots(){
 }
 try{ if(localStorage.getItem("room_dots")) dotsHidden=true; }catch(e){}
 
+/* ---------------- 移动端：横屏 / 全屏 / 手感 ---------------- */
+const IS_TOUCH = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+const IS_PHONE = IS_TOUCH && Math.min(innerWidth, innerHeight) < 820;
+
+/** 竖屏时把竖直视野放大，保证横向能看到的范围不变（不然手机上只剩一条缝）。 */
+function fitFov(aspect){
+  const hfov = 64 * Math.PI / 180;
+  const v = 2 * Math.atan(Math.tan(hfov / 2) / Math.max(aspect, .55));
+  return Math.min(82, Math.max(42, v * 180 / Math.PI));
+}
+
+/** 进房间时尽量全屏 + 锁横屏，让手机像在玩游戏。必须在点击里调用。 */
+function enterImmersive(){
+  if (!IS_PHONE) return;
+  const el = document.documentElement;
+  const fs = el.requestFullscreen ? el.requestFullscreen({ navigationUI: "hide" }) : null;
+  if (fs && fs.then) {
+    fs.then(() => {
+      try { screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {}); } catch (e) {}
+    }).catch(() => {});
+  } else {
+    try { screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {}); } catch (e) {}
+  }
+}
+function exitImmersive(){
+  try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+  if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+}
+
+/** 竖屏提示：不挡操作，只提醒一次。 */
+function showRotateHint(){
+  if (!IS_PHONE || innerHeight <= innerWidth) return;
+  let el = document.getElementById("rotate-hint");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "rotate-hint";
+    el.className = "glass";
+    el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M3.5 9.5a8.5 8.5 0 0 0 3 10"/><path d="M3 6.6v3.2h3.2"/></svg><span>横过来玩 · 整间屋子才装得下</span>';
+    document.body.appendChild(el);
+    el.addEventListener("click", () => el.classList.remove("on"));
+  }
+  el.classList.add("on");
+  clearTimeout(showRotateHint._t);
+  showRotateHint._t = setTimeout(() => el.classList.remove("on"), 6500);
+}
+
 /* ---------------- 交互：拖拽 / 缩放 / 拾取 ---------------- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
 let dragging=false, dragMoved=0, px=0, py=0, hoverHot=null;
@@ -2351,18 +2450,19 @@ stage.addEventListener("pointermove",e=>{
   if(pointers.size===2){
     const [a,b]=[...pointers.values()];
     const d=Math.hypot(a.x-b.x,a.y-b.y);
-    if(pinchD) cam.gradius=clamp(cam.gradius*(pinchD/d),4.2,10.5);
+    if(pinchD) cam.gradius=clamp(cam.gradius*(pinchD/d),IS_TOUCH?2.6:4.2,IS_TOUCH?12:10.5);
     pinchD=d; return;
   }
   if(dragging){
     const dx=e.clientX-px, dy=e.clientY-py; px=e.clientX; py=e.clientY;
     dragMoved+=Math.abs(dx)+Math.abs(dy);
     if(!flyingLock){
-      cam.gyaw=clamp(cam.gyaw-dx*.0034,-.6,1.0);
-      cam.gpitch=clamp(cam.gpitch+dy*.0026,.1,.62);
+      const k = IS_TOUCH ? Math.min(1.35, 1.15 * (760 / Math.max(360, innerWidth))) : 1;
+      cam.gyaw=clamp(cam.gyaw-dx*.0034*k,-.6,1.0);
+      cam.gpitch=clamp(cam.gpitch+dy*.0026*k,.1,.62);
     }
     hideDots();
-  } else {
+  } else if(!IS_TOUCH) {
     updateHover(e.clientX,e.clientY);
   }
   // 手电（夜里）
@@ -2373,7 +2473,7 @@ function endPointer(e){
   if(pointers.size<2) pinchD=0;
   if(pointers.size===0){
     stage.classList.remove("dragging");
-    if(dragging && dragMoved<7 && !flyingLock){
+    if(dragging && dragMoved < (IS_TOUCH ? 12 : 7) && !flyingLock){
       handleClick(e.clientX,e.clientY);
     }
     dragging=false;
@@ -2552,10 +2652,15 @@ function animate(){
 /* ---------------- 启动 / 入场 ---------------- */
 function resize(){
   if(!camera||!renderer) return;   // 房间是懒加载的，缩放可能先到
-  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  camera.aspect=innerWidth/innerHeight;
+  camera.fov=fitFov(camera.aspect); camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 }
 addEventListener("resize",resize);
+addEventListener("orientationchange", () => { setTimeout(resize, 260); });
+if (screen.orientation && screen.orientation.addEventListener) {
+  screen.orientation.addEventListener("change", () => setTimeout(resize, 260));
+}
 
 function boot(){
   // 2D 门厅是默认落地页；3D 空间在做完首屏后预热，保证进门瞬间就绪
@@ -2748,7 +2853,8 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
     }
     applyDayNight(document.documentElement.getAttribute("data-theme") === "dark" ? 0 : 1, 0);
     animate();
-    cam.yaw = cam.gyaw = .9; cam.pitch = cam.gpitch = .42; cam.radius = cam.gradius = 11.5;
+    const portrait = innerHeight > innerWidth;
+    cam.yaw = cam.gyaw = .9; cam.pitch = cam.gpitch = portrait ? .255 : .42; cam.radius = cam.gradius = portrait ? 9.4 : 11.5;
     cam.tx = cam.gtx = 1.2; cam.ty = cam.gty = 1.2; cam.tz = cam.gtz = -.5;
     initing = false;
     ready = true;
@@ -2778,6 +2884,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
   /* ---------------------- 进门：门厅 → 3D 空间 ---------------------- */
   function enterSpace(origin) {
     if (busy || mode === "space") return;
+    enterImmersive();
     busy = true;
     setOrigin(origin);
     if (!ensureRoom()) { busy = false; return; }
@@ -2801,6 +2908,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
       portalFlash(0);
       mode = "space";
       busy = false;
+      setTimeout(showRotateHint, 600);
     }, window.REDUCED ? 120 : 1500);
   }
 
@@ -2808,6 +2916,7 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
   const OUTSIDE = { yaw: .9, pitch: .42, radius: 11.5, tx: 1.2, ty: 1.2, tz: -.5 };
   function exitSpace(origin) {
     if (busy || mode !== "space") return;
+    exitImmersive();
     busy = true;
     const o = origin || document.getElementById("st-enter");
     const p = setOrigin(o);

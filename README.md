@@ -91,6 +91,10 @@
 
 ![移动端](docs/screenshots/06-mobile.jpg)
 
+**手机横过来** —— 进房间时自动全屏 + 锁横屏，顶栏收成游戏 HUD，一根手指环顾、两根手指推拉：
+
+![手机横屏的 3D 房间](docs/screenshots/15-mobile-landscape.jpg)
+
 **门厅的其他角落** —— 作品卡片 / 书架：
 
 | 桌子上写着的东西 | 架子上的书 |
@@ -150,6 +154,8 @@
 - **可访问性与兜底**：WebGL 不可用时给提示而不是白屏；尊重 `prefers-reduced-motion`；
   每个物件都有 `aria-label`，键盘也能玩。
 - **移动端**：≤760px / ≤430px 单独处理过，触摸手势、底部抽屉面板、视频 `playsinline` 不劫持全屏。
+  进 3D 房间会尝试**全屏 + 锁横屏**（`requestFullscreen` + `screen.orientation.lock`），竖屏时视野按
+  屏幕比例反算，不会只剩一条缝；横屏时顶栏收成 34px 的游戏 HUD。
 
 ---
 
