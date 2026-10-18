@@ -87,6 +87,14 @@
 
 ![白天](docs/screenshots/04-room-day.jpg)
 
+**桌上那叠便利贴** —— 撕一张写一句话，全站的人都能看见；桌上那张会显示最新的留言：
+
+![便签墙](docs/screenshots/17-notes.jpg)
+
+**抽屉** —— 拉开来是过程稿：分镜、被推翻的版本、还没走完的路：
+
+![抽屉](docs/screenshots/18-drawer.jpg)
+
 **还有凌晨三点** —— 连点台灯三次，屋子会下雨：
 
 ![凌晨三点的书房](docs/screenshots/16-late-night.jpg)
