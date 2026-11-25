@@ -4,10 +4,11 @@
 
 **一间会呼吸的屋子 —— 你可以在浏览器里推门进去。**
 
-[![在线体验](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-chenqiyue.ccwu.cc-0A84FF?style=flat-square)](https://chenqiyue.ccwu.cc/)
+[![在线体验](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-chenqiyue.ccwu.cc-b8621b?style=flat-square)](https://chenqiyue.ccwu.cc/)
+[![版本](https://img.shields.io/badge/release-v2.0.0-b8621b?style=flat-square)](https://github.com/qiyuechen0929/personal-website/releases/tag/v2.0.0)
 [![零依赖](https://img.shields.io/badge/runtime%20deps-0-2ea44f?style=flat-square)](#工程上的讲究)
 [![单文件](https://img.shields.io/badge/build-single%20html-2ea44f?style=flat-square)](#工程上的讲究)
-[![30s 短片](https://img.shields.io/badge/film-30s%20%C2%B7%20120%20BPM-0A84FF?style=flat-square)](#三十秒先看个片子)
+[![30s 短片](https://img.shields.io/badge/film-30s%20%C2%B7%20120%20BPM-b8621b?style=flat-square)](#三十秒先看个片子)
 [![License](https://img.shields.io/badge/license-MIT-6e6e78?style=flat-square)](LICENSE)
 
 一个纯手搓的个人网站。**门厅是 2D 的**，推门进去是一间 **Three.js 手写的 3D 书房**，屋里每件东西都能点；首页还藏着一支 **30 秒的代码生成短片**。
@@ -18,8 +19,20 @@
 
 ---
 
+## V2.0.0 更新亮点
+
+相比 [v1.0.0](https://github.com/qiyuechen0929/personal-website/releases/tag/v1.0.0)，**v2.0.0** 对 2D 落地页与 3D 书房进行了一次从审美到交互的全面重构：
+
+- **暖光建筑书房美学（默认白天）**：告别冷蓝紫风格，默认以**暖宣纸白天模式**迎客，支持一键切换**胡桃炭墨夜色**；叠加纯 SVG 纸张微噪点肌理，建立衬线标题 + 无衬线正文 + 等宽编号的三层编辑排版与极简拱门 Favicon。
+- **画册级板块重塑**：关于区改为 `2×2` 建筑细线矩阵，作品区采用 **`3×3` Featured 跨列网格**（8 张卡片零缺口齐平），书架区改为四色书脊目录行；移除所有浮层任务表与多余元素，页面四角彻底零遮挡。
+- **3D 书房电影机位导演栏**：底部新增 6 机位一键丝滑切换（`全景 / 书桌 / 书架 / 窗边 / 低机位 / 俯瞰`）与 **电影环绕漫游模式**，支持 `Q / E` 切机位、`R` 开关漫游、`0` 回全景。
+- **丁达尔体积光束与工程修复**：窗户新增昼夜联动的斜射体积光束与电影暗角；修平 3D 书架层板方向，根治原版书架随机留空导致的 12% 概率 3D 初始化白屏 Bug。
+
+---
+
 ## 目录
 
+- [V2.0.0 更新亮点](#v200-更新亮点)
 - [三十秒，先看个片子](#三十秒先看个片子)
 - [这是什么](#这是什么)
 - [截图](#截图)
@@ -62,30 +75,38 @@
 
 ## 这是什么
 
-不是一页简历式的个人主页，而是"一间屋子"：
+不是一页简历式的个人主页，而是「一间屋子」：
 
 | | |
 |---|---|
-| 🚪 **门厅** | 进入时的 2D 落地页：我是谁、在折腾什么、做过什么。右边那扇门就是入口。 |
-| 🏠 **推门进去** | 切到 3D 房间，拖动环顾、缩放、点屋里的东西。 |
-| 📺 **屋里每件东西都有故事** | 挂钟、鱼缸、吉他、电视、地球仪、纸飞机、窗台气象、桌上那叠手稿…… |
+| 🚪 **门厅** | 暖宣纸质感的 2D 落地页：我是谁、在折腾什么、做过什么。右边那扇拱门就是入口。 |
+| 🏠 **推门进去** | 切到 3D 书房，拖动环顾、缩放、用底部导演栏一键切机位或开启自动漫游。 |
+| 📺 **屋里每件东西都有故事** | 挂钟、鱼缸、吉他、电视、地球仪、纸飞机、窗台气象、桌上便利贴与抽屉手稿…… |
 | 🎬 **一支短片** | 首页第一屏之下，以及 3D 房间那台电视里，都在放这 30 秒。 |
-| 🐱 **藏了彩蛋** | 可探索的秘密（右上角有发现进度）、一只会散步的猫、一个"抓 Bug"小游戏。 |
-| 📊 **真实的访客计数器** | 右下角那个数字是真的人在访问时才增长，不是假数据。 |
+| 🌧 **藏了彩蛋** | 连点台灯三次进入「凌晨三点」雨夜模式；键盘输入 `上上下下左右左右 BA` 可玩「抓 Bug」小游戏。 |
+| 📊 **真实的访客计数器** | 首页与 3D 房间里的数字是真的人在访问时才增长，不是假数据。 |
 
 ---
 
 ## 截图
 
-| 门厅（2D） | 3D 房间（夜） |
+| 门厅（2D · 白天默认） | 3D 房间（白天 · 体积光 + 机位栏） |
 |---|---|
-| ![门厅](docs/screenshots/01-hall.jpg) | ![3D 房间](docs/screenshots/03-room.jpg) |
-| **短片区块** | **点电视：就地播放** |
-| ![短片](docs/screenshots/02-reel.jpg) | ![电视](docs/screenshots/05-tv.jpg) |
+| ![门厅](docs/screenshots/01-hall.jpg) | ![3D 房间白天](docs/screenshots/04-room-day.jpg) |
+| **3D 房间（夜色）** | **短片区块** |
+| ![3D 房间夜色](docs/screenshots/03-room.jpg) | ![短片](docs/screenshots/02-reel.jpg) |
 
-**开灯之后** —— 同一间屋子，白天是另一个样子（点窗户或右上角 ☀ 切换）：
+**V2.0.0 电影机位切换** —— 底部导演栏一键切到「书架正面」或「微缩俯瞰」（快捷键 `Q / E` 切机位、`R` 自动漫游）：
 
-![白天](docs/screenshots/04-room-day.jpg)
+| 书架正面机位 | 微缩模型俯瞰机位 |
+|---|---|
+| ![书架机位](docs/screenshots/19-cam-shelf.jpg) | ![俯瞰机位](docs/screenshots/20-cam-iso.jpg) |
+
+**门厅的其他角落** —— Featured 3×3 作品网格 / 四色书脊书架：
+
+| 桌子上写着的东西 | 架子上的书 |
+|---|---|
+| ![作品](docs/screenshots/13-work.jpg) | ![书架](docs/screenshots/14-life.jpg) |
 
 **桌上那叠便利贴** —— 撕一张写一句话，全站的人都能看见；桌上那张会显示最新的留言：
 
@@ -99,19 +120,11 @@
 
 ![凌晨三点的书房](docs/screenshots/16-late-night.jpg)
 
-**移动端** —— 门厅 / 短片 / 3D 房间：
+**移动端** —— 门厅 / 横屏 3D 房间：
 
-![移动端](docs/screenshots/06-mobile.jpg)
-
-**手机横过来** —— 进房间时自动全屏 + 锁横屏，顶栏收成游戏 HUD，一根手指环顾、两根手指推拉：
-
-![手机横屏的 3D 房间](docs/screenshots/15-mobile-landscape.jpg)
-
-**门厅的其他角落** —— 作品卡片 / 书架：
-
-| 桌子上写着的东西 | 架子上的书 |
+| 手机竖屏门厅 | 手机横屏 3D 房间（游戏式 HUD） |
 |---|---|
-| ![作品](docs/screenshots/13-work.jpg) | ![书架](docs/screenshots/14-life.jpg) |
+| ![移动端](docs/screenshots/06-mobile.jpg) | ![手机横屏的 3D 房间](docs/screenshots/15-mobile-landscape.jpg) |
 
 ---
 
@@ -125,16 +138,13 @@
 | **鱼缸：撒一把鱼食，它们会抢** | **电脑：打开是作品清单** |
 | ![鱼缸](docs/screenshots/10-tank.jpg) | ![作品面板](docs/screenshots/12-projects.jpg) |
 
-**还有一处藏起来的** —— 右上角那个「已发现」徽章。点开是一张清单：屋里 28 个能点的地方、几处彩蛋，还有一个「抓 Bug」小游戏。
-
-![探索清单](docs/screenshots/11-explore.jpg)
-
 ---
 
 ## 房间里的物件
 
 | 物件 | 交互 |
 |---|---|
+| 🎬 **底部机位导演栏** | 一键切换 `全景 / 书桌 / 书架 / 窗边 / 低机位 / 俯瞰` 与 `漫游` 模式（支持 `Q / E / R / 0` 快捷键） |
 | 🕰 **挂钟** | 指针按**北京时间**实时走动（时区无关实现） |
 | 🐟 **鱼缸** | 视角推近看鱼，还能撒一把鱼食 |
 | 🎸 **吉他** | 能拨响 —— WebAudio 实时合成，没有音频文件 |
@@ -143,34 +153,29 @@
 | ✈️ **纸飞机** | 桌上纸堆点一下，飞出一架 |
 | 📝 **桌上那叠便利贴** | **便签墙**：撕一张，写一句话贴上去，全站访客都看得见；桌上那张会显示最新的留言 |
 | 🗄 **抽屉** | 拉开给你看**过程稿**：分镜、被推翻的版本、还在半路的东西 |
-| 🕯 **台灯** | 连点三次 → **凌晨三点**：窗外下雨、猫跳上桌、只剩显示器亮着，角落浮出一行 `3:00 AM · 睡不着` |
-| 🌦 **窗台气象** | 点一下看天气 |
+| 🕯 **台灯** | 连点三次 → **凌晨三点**：窗外下雨、只剩显示器亮着，角落浮出一行 `3:00 AM · 睡不着` |
+| 🌦 **窗台气象** | 点一下看天气 / 切雨晴 |
 | 📜 **桌上手稿** | 我的博客，点开跳过去 |
-| 🐈 **猫** | 撸一下会喵 |
 | 🖥 **电脑** | 作品清单 |
 | 🖼 **相框** | 关于我 |
 | 🚪 **门** | 联系方式（推门有敲门声和吱呀声） |
-
-还有 **探索进度**（右上角有个 `已发现` 计数，把屋子翻一遍能集齐）和一个可以玩的 **「抓 Bug」** 小游戏。
 
 ---
 
 ## 工程上的讲究
 
-- **零素材**：界面里没有一张图片、一个音频文件 —— 全部 CSS / Canvas / WebAudio / 程序化贴图。
+- **零素材**：界面里没有一张图片、一个音频文件 —— 全部 CSS / SVG / Canvas / WebAudio / 程序化贴图。
   唯一的媒体是那支短片，而它也是代码生成的（成品 5 MB，**不点播放一个字节都不下载**）。
 - **零依赖、零构建**：除 `vendor/three.min.js` 外没有运行时依赖，没有打包器。
   改完 `index.html` 刷新即可，部署就是传文件。
-- **首屏轻**：`index.html` 225 KB，**brotli 后 61 KB**（Three.js 单独本地托管，gzip 155 KB）。
+- **首屏轻**：单文件 `index.html` 经 gzip/brotli 压缩后体积轻巧（Three.js 单独本地托管）。
 - **后端也是零依赖**：`server/server.mjs` 只用 Node 内置 `http` / `https` / `zlib` —— 没有 express。
   HTML/JS 走 gzip/brotli + ETag 304，**206 分段响应**（iOS 拖进度条要靠它）。
-- **HTTPS 自动续期**：acme.sh 走 **DNS-01**（不需要 80 端口、不需要备案），
-  服务进程每 12 小时自检，续签后**热加载证书**，不重启。
+- **HTTPS 自动续期**：acme.sh 走 **DNS-01**（不需要 80 端口、不需要备案），证书自动续期并热重载。
 - **可访问性与兜底**：WebGL 不可用时给提示而不是白屏；尊重 `prefers-reduced-motion`；
   每个物件都有 `aria-label`，键盘也能玩。
 - **移动端**：≤760px / ≤430px 单独处理过，触摸手势、底部抽屉面板、视频 `playsinline` 不劫持全屏。
-  进 3D 房间会尝试**全屏 + 锁横屏**（`requestFullscreen` + `screen.orientation.lock`），竖屏时视野按
-  屏幕比例反算，不会只剩一条缝；横屏时顶栏收成 34px 的游戏 HUD。
+  进 3D 房间会尝试**全屏 + 锁横屏**，竖屏时视野按屏幕比例反算，横屏时顶栏收成游戏 HUD。
 
 ---
 
@@ -178,12 +183,12 @@
 
 | 层 | 用了什么 |
 |---|---|
-| 界面 | 原生 HTML + CSS（自定义 design token + `.glass` 毛玻璃材质）+ 原生 JS |
-| 3D | Three.js r152（本地 vendor，不用 CDN） |
+| 界面 | 原生 HTML + CSS（Warm Architectural Study 设计令牌 + SVG 纸感微噪点）+ 原生 JS |
+| 3D | Three.js r152（本地 vendor，程序化建模 + 丁达尔体积光束 + 6 机位运镜系统） |
 | 短片 | Canvas 2D 逐帧纯函数 + Playwright 截图 + ffmpeg 编码 |
 | 音频 | WebAudio API 实时合成（吉他、音效、整条短片音轨） |
 | 后端 | Node.js 原生 `http`/`https`，**零依赖** |
-| 部署 | nginx 静态托管 + 一个 Node 进程（计数接口）+ Let's Encrypt（DNS-01） |
+| 部署 | nginx 静态托管 + Node 计数/便签服务 + Let's Encrypt（DNS-01） |
 
 ---
 
@@ -201,17 +206,15 @@
 │   ├── audio30.mjs            #   合成 30 秒音轨
 │   └── README.md              #   重渲步骤与"片子语法"
 ├── server/
-│   ├── server.mjs             # 访客计数 + 静态托管 + gzip/brotli + HTTPS + 自动续期
+│   ├── server.mjs             # 访客计数 + 便签墙 + 静态托管 + gzip/brotli + HTTPS
 │   └── README.md
-├── src/                       # 模块化源码分片（开发时注入进 index.html）
-│   ├── site.css / site.js / site.html
-│   └── build.mjs              # 注入 + 语法自检构建脚本
+├── src/                       # 早期模块化源码分片与构建脚本
 ├── tools/
 │   ├── sync-projects.mjs      # 作品区跟着 GitHub 自动更新
 │   └── sync-projects.config.json
 ├── docs/
 │   ├── DEPLOY.md              # 部署到服务器的完整步骤
-│   ├── screenshots/
+│   ├── screenshots/           # V2.0.0 全套截图
 │   └── media/                 # 早期演示视频
 ├── .github/workflows/         # 每天自动同步作品区
 ├── LICENSE
@@ -231,10 +234,10 @@ npx serve .          # 或 python -m http.server 8080
 > 直接双击 `index.html` 也能看，只是浏览器会限制一部分特性（比如剪贴板、自动播放）。
 > 资源用的是**相对路径**，放在任何子路径下（例如 `https://user.github.io/repo/`）都能跑。
 
-### 连上访客计数后端
+### 连上访客计数 & 便签墙后端
 
 ```bash
-node server/server.mjs        # 默认 8790 端口，同时托管网站 + /api/hit
+node server/server.mjs        # 默认 8790 端口，同时托管网站 + /api/hit + /api/notes
 
 # 可选环境变量：
 #   PORT=6061
@@ -257,28 +260,15 @@ node server/server.mjs        # 默认 8790 端口，同时托管网站 + /api/h
 | 这间屋子被推开过 N 次 | 总访问次数 | ❌ |
 | 这是你第 N 次来 | 单个访客的次数 | ❌ |
 
-**隐私**：不存 IP、不做指纹、不接第三方统计，只有"一个随机 ID + 次数"，存在自己的服务器上。
+**隐私**：不存 IP、不做指纹、不接第三方统计，只有「一个随机 ID + 次数」，存在自己的服务器上。
 
 ---
 
 ## 部署
 
-线上实例跑在一台 **1.6 GB 内存**的轻量云服务器上：nginx 托管静态文件，一个 Node 进程只负责计数接口。
+线上实例跑在一台 **1.6 GB 内存**的轻量云服务器上：nginx 托管静态文件，一个 Node 进程（systemd `personal-site.service`）负责 `/api/hit` 与 `/api/notes` 接口。
 
-```bash
-# 1) 站点文件放到服务器目录（index.html / vendor/ / server/）
-# 2) 容器里跑后端
-docker run -d --name mysite --restart unless-stopped \
-  -p 6061:6061 -v /path/to/site:/site -e PORT=6061 \
-  --entrypoint /usr/local/bin/node <node-image> /site/server/server.mjs
-
-# 3) 签发证书（DNS-01，不需要 80 端口、不需要备案）
-acme.sh --issue --dns dns_cf -d your.domain --keylength ec-256
-```
-
-之后 `server.mjs` 会自动启用 HTTPS，并在每 12 小时自检续期、续签后热加载证书 —— **90 天到期也不用管**。
-
-细节（nginx vhost、只放行必要路径、证书续期钩子）见 [`docs/DEPLOY.md`](docs/DEPLOY.md) 与 [`部署说明.md`](部署说明.md)。
+细节见 [`docs/DEPLOY.md`](docs/DEPLOY.md) 与 [`部署说明.md`](部署说明.md)。
 
 ---
 
@@ -294,17 +284,15 @@ node tools/sync-projects.mjs      # 拉 GitHub 仓库 → 改写 projects 数组
 - 手写的中文名称/简介优先保留，其余（语言、链接）从 GitHub 现取
 - 可自动追加**其它有真实简介的仓库**，上限自己定（`maxTotal`）
 - **幂等**（没变化不写）、写前自动备份、产物语法校验，**失败绝不覆盖**
-- 仓库里还配了 `.github/workflows/sync-projects.yml`：每天 04:10（北京时间）自动跑一次并提交
-- 短片里出现了八个项目，脚本每次会核对一遍 `reel.projects` 快照 —— 对不上就在日志里提示「短片需要重渲」
+- 仓库里配了 `.github/workflows/sync-projects.yml`：每天 04:10（北京时间）自动跑一次并提交
 
 ---
 
 ## 已知限制（说实话）
 
-1. **计数器需要后端**：纯静态托管（GitHub Pages / 各类 PaaS）上，计数会退化为本地存储 —— 想要真实数字就得连自己的后端。
+1. **计数器与便签墙需要后端**：纯静态托管（GitHub Pages / 各类 PaaS）上，计数会退化为本地存储 —— 想要真实数字就得连自己的后端。
 2. **3D 需要 WebGL**：极老的设备或禁用了 WebGL 的环境下会自动降级为提示，进不了 3D 房间。
-3. **短片是"烘焙"好的**：项目列表变了，片子里那八张卡片不会跟着变 —— 同步脚本会提醒你重渲。
-4. **非标准端口的国内提示**：用 `域名:6061` 这种形态，部分国内浏览器/App 会提示"危险网站"（是"未备案 + 非常规端口"的策略提示，与证书无关）。要彻底消除需走标准 443。
+3. **短片是「烘焙」好的**：项目列表变了，片子里那八张卡片不会跟着变 —— 同步脚本会提醒你重渲。
 
 ---
 
