@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>ChenQiyue V4 Ultimate — 36s 60fps 128 BPM Live-3D Motion Film</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0c0b09; }
+  canvas { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+</style>
+</head>
+<body>
+<canvas id="out" width="1920" height="1080"></canvas>
+<script src="/vendor/three.min.js"></script>
+<script>
+"use strict";
+const W = 1920, H = 1080;
+const BPM = 128, BEAT = 60 / BPM; // 0.46875s
+
+const outCanvas = document.getElementById('out');
+const outCtx = outCanvas.getContext('2d');
+
+const glCanvas = document.createElement('canvas'); glCanvas.width = W; glCanvas.height = H;
+const compCanvas = document.createElement('canvas'); compCanvas.width = W; compCanvas.height = H;
+const ctx = compCanvas.getContext('2d');
+
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const remap = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
+const easeOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
+const easeIn = (t) => Math.pow(clamp(t), 3);
+const easeInOut = (t) => { t = clamp(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const easeExpoOut = (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * clamp(t)));
+const easeExpoIO = (t) => {
+  t = clamp(t);
+  if (t === 0 || t === 1) return t;
+  return t < 0.5 ? Math.pow(2, 20 * t - 10) / 2 : (2 - Math.pow(2, -20 * t + 10)) / 2;
+};
+
+// 128 BPM 鼓点脉冲强度（0..1，每拍瞬间冲击，随后指数回落）
+function beatPulse(t) {
+  const bp = (t % BEAT) / BEAT;
+  return Math.exp(-bp * 9.5);
+}
+
+const IMG_PATHS = {
+  hall:   '/docs/screenshots/01-hall.jpg',
+  roomN:  '/docs/screenshots/03-room.jpg',
+  roomD:  '/docs/screenshots/04-room-day.jpg',
+  mobile: '/docs/screenshots/06-mobile.jpg',
+  work:   '/docs/screenshots/13-work.jpg',
+  life:   '/docs/screenshots/14-life.jpg',
+  land:   '/docs/screenshots/15-mobile-landscape.jpg',
+  night3: '/docs/screenshots/16-late-night.jpg',
+  notes:  '/docs/screenshots/17-notes.jpg',
+  drawer: '/docs/screenshots/18-drawer.jpg',
+  shelf:  '/docs/screenshots/19-cam-shelf.jpg',
+  iso:    '/docs/screenshots/20-cam-iso.jpg'
+};
+const IMGS = {};
+const TEXS = {};
+
+// 动态按需缓存真实 3D 书房实景帧（420 帧）
+const liveCache = new Map();
+function loadLiveFrame(idx) {
+  const i = clamp(Math.floor(idx), 0, 209);
+  if (liveCache.has(i)) return Promise.resolve(liveCache.get(i));
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      // 保持轻量缓存（最近 24 帧）防止内存暴涨
+      if (liveCache.size > 24) {
+        const firstKey = liveCache.keys().next().value;
+        liveCache.delete(firstKey);
+      }
+      liveCache.set(i, img);
+      resolve(img);
+    };
+    img.onerror = () => resolve(IMGS.roomD);
+    img.src = `/reel/v4-ultimate/live3d/live_${String(i).padStart(4, '0')}.jpg`;
+  });
+}
+
+const PROJECTS = [
+  { num: '01', tag: 'FLUTTER · FEATURED', name: '似你 · Sini', desc: '端侧优先 AI 数字人格聊天 App，本地克隆风格与音色' },
+  { num: '02', tag: 'POWERSHELL', name: 'vision-bridge', desc: '给纯文本模型装眼睛，剪贴板截图自动视觉转译' },
+  { num: '03', tag: 'HTML5 CANVAS', name: 'MagnetRush', desc: '纯 Canvas 赛车躲避小游戏，视觉特效与车库改装' },
+  { num: '04', tag: 'PYTHON · 3D', name: '古建场景生成', desc: 'AI 实时建模低多边形北京天坛与佛山祖庙昼夜巡游' },
+  { num: '05', tag: 'POWERSHELL', name: 'WinCleanPro', desc: '轻量自绘界面 Windows 系统垃圾清理工具' },
+  { num: '06', tag: 'THREE.JS · WEBGL', name: '这间书房', desc: '单文件零依赖手搓 3D 书房，暖光建筑美学 V2.0' },
+  { num: '07', tag: 'JAVASCRIPT', name: 'ekko-connect', desc: '最新开源连接工具 · GitHub 每日自动同步展示' },
+  { num: '08', tag: 'PYTHON', name: 'chatgpt-image-pool', desc: '自动化图像生成与资源池调度工具' }
+];
+
+/* ==================== Three.js + GLSL 高燃丝绸光场 ==================== */
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.setPixelRatio(1);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(46, W / H, 0.1, 160);
+
+const silkUniforms = { uTime: { value: 0 }, uLight: { value: 0 }, uPulse: { value: 0 } };
+const silkMat = new THREE.ShaderMaterial({
+  depthWrite: false, depthTest: false, uniforms: silkUniforms,
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.999,1.0); }`,
+  fragmentShader: `
+    uniform float uTime; uniform float uLight; uniform float uPulse;
+    varying vec2 vUv;
+    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float noise(vec2 p){
+      vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y);
+    }
+    float fbm(vec2 p){
+      float v=0.0, a=0.5; mat2 m=mat2(0.8,0.6,-0.6,0.8);
+      for(int i=0;i<4;i++){ v+=a*noise(p); p=m*p*2.02; a*=0.5; } return v;
+    }
+    void main(){
+      vec2 p=(vUv-0.5)*vec2(1.777,1.0);
+      float t=uTime*0.36;
+      float q=fbm(p*1.5+vec2(t,-t*0.7));
+      float r=fbm(p*2.0+vec2(q*1.4-t*0.6,q+t*0.5));
+      float s=smoothstep(0.16,0.84,r);
+      vec3 d0=vec3(0.045,0.04,0.036), d1=vec3(0.18,0.12,0.068), dg=vec3(0.68,0.44,0.18);
+      vec3 colD=mix(d0,d1,s) + dg*(exp(-length(p)*2.0)*(0.32+uPulse*0.28) + pow(s,3.2)*0.24);
+      vec3 l0=vec3(0.96,0.944,0.91), l1=vec3(0.92,0.87,0.80);
+      vec3 colL=mix(l0,l1,s*0.85);
+      vec3 col=mix(colD,colL,uLight);
+      col += (hash(vUv*900.0+fract(uTime*17.3))-0.5)*0.022;
+      gl_FragColor=vec4(col,1.0);
+    }
+  `
+});
+const bgQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), silkMat);
+bgQuad.frustumCulled = false; bgQuad.renderOrder = -100;
+scene.add(bgQuad);
+
+scene.add(new THREE.AmbientLight(0xfff4e2, 0.95));
+const dirL = new THREE.DirectionalLight(0xffe6c2, 1.35); dirL.position.set(5, 7, 8); scene.add(dirL);
+const rimL = new THREE.PointLight(0xe6a856, 2.2, 30); rimL.position.set(-5, 3, 5); scene.add(rimL);
+
+// 广角 3D 弧形画廊（修好构图：拉大半径与视野，绝不贴脸裁切！）
+function makeCardTex(p, feat) {
+  const c = document.createElement('canvas'); c.width = 720; c.height = 440;
+  const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 720, 440);
+  bg.addColorStop(0, feat ? '#2b2218' : '#1d1a17'); bg.addColorStop(1, '#110f0d');
+  g.fillStyle = bg; g.fillRect(0, 0, 720, 440);
+  g.strokeStyle = feat ? '#e8aa58' : 'rgba(246,240,230,0.22)';
+  g.lineWidth = feat ? 4 : 2; g.strokeRect(14, 14, 692, 412);
+  g.fillStyle = '#e8aa58'; g.font = '600 22px "Consolas", monospace'; g.fillText(p.tag, 48, 76);
+  g.fillStyle = 'rgba(246,240,230,0.32)'; g.textAlign = 'right'; g.fillText(p.num, 672, 76); g.textAlign = 'left';
+  g.fillStyle = '#f8f3ea'; g.font = '700 50px "Songti SC","Noto Serif SC","STSong","Microsoft YaHei",serif'; g.fillText(p.name, 48, 176);
+  g.fillStyle = '#cbc1b3'; g.font = '400 26px "PingFang SC","Microsoft YaHei",sans-serif';
+  let line = '', y = 250;
+  for (let i = 0; i < p.desc.length; i++) {
+    line += p.desc[i];
+    if (g.measureText(line).width > 610 || i === p.desc.length - 1) { g.fillText(line, 48, y); line = ''; y += 44; }
+  }
+  g.fillStyle = '#e8aa58'; g.font = '500 22px "Consolas", monospace'; g.fillText('github.com/qiyuechen0929  ↗', 48, 396);
+  const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; return tex;
+}
+
+const arcGallery = new THREE.Group();
+const arcCards = [];
+const R_ARC = 12.8; // 更大弧半径，构图舒展完整！
+PROJECTS.forEach((p, i) => {
+  const grp = new THREE.Group();
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 2.2), new THREE.MeshBasicMaterial({ map: makeCardTex(p, i === 0) }));
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(3.72, 2.32, 0.08), new THREE.MeshStandardMaterial({ color: 0x24201b, roughness: 0.3, metalness: 0.78 }));
+  frame.position.z = -0.05; grp.add(frame, plane);
+  const ang = (i - 3.5) * 0.34;
+  grp.position.set(Math.sin(ang) * R_ARC, (i % 2 ? 0.42 : -0.36), -Math.cos(ang) * R_ARC + R_ARC);
+  grp.rotation.y = -ang;
+  arcGallery.add(grp); arcCards.push(grp);
+});
+arcGallery.visible = false;
+scene.add(arcGallery);
+
+// 3D 钛金双面手机模型
+const phone3D = new THREE.Group();
+const pBody = new THREE.Mesh(new THREE.BoxGeometry(2.16, 4.46, 0.16), new THREE.MeshStandardMaterial({ color: 0x1b1917, roughness: 0.22, metalness: 0.88 }));
+const pTrim = new THREE.Mesh(new THREE.BoxGeometry(2.22, 4.52, 0.11), new THREE.MeshStandardMaterial({ color: 0xe5a858, roughness: 0.2, metalness: 0.92 }));
+const pFrontMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const pFront = new THREE.Mesh(new THREE.PlaneGeometry(1.98, 4.28), pFrontMat); pFront.position.z = 0.085;
+const pBackMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const pBack = new THREE.Mesh(new THREE.PlaneGeometry(1.98, 4.28), pBackMat); pBack.position.z = -0.085; pBack.rotation.y = Math.PI;
+phone3D.add(pTrim, pBody, pFront, pBack);
+phone3D.visible = false;
+scene.add(phone3D);
+
+/* ==================== 2D 特效工具：RGB 光学色散脉冲 / 拱门 / 光标 ==================== */
+function drawRoundedRect(c, x, y, w, h, r) {
+  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function drawArchPath(c, cx, cy, w, h) {
+  const r = w / 2;
+  c.beginPath(); c.moveTo(cx - r, cy + h / 2); c.lineTo(cx - r, cy - h / 2 + r);
+  c.arc(cx, cy - h / 2 + r, r, Math.PI, 0, false); c.lineTo(cx + r, cy + h / 2); c.closePath();
+}
+function drawCover(c, img, x, y, w, h, scale = 1, dx = 0, dy = 0) {
+  if (!img) return;
+  const ir = img.width / img.height, cr = w / h;
+  let dw, dh;
+  if (ir > cr) { dh = h * scale; dw = dh * ir; } else { dw = w * scale; dh = dw / ir; }
+  c.drawImage(img, x + (w - dw) / 2 + dx, y + (h - dh) / 2 + dy, dw, dh);
+}
+function drawCursor(c, x, y, press = 0) {
+  c.save(); c.translate(x, y); const s = 1 - press * 0.16; c.scale(s, s);
+  c.shadowColor = 'rgba(0,0,0,0.35)'; c.shadowBlur = 14; c.shadowOffsetY = 6;
+  c.beginPath(); c.moveTo(0,0); c.lineTo(0,34); c.lineTo(9,26); c.lineTo(16,39); c.lineTo(22,36); c.lineTo(15,23); c.lineTo(26,23); c.closePath();
+  c.fillStyle = '#141210'; c.fill(); c.lineWidth = 2.4; c.strokeStyle = '#fffaf2'; c.stroke(); c.restore();
+}
+
+// 炫酷 RGB 光学色散微裂脉冲（转场或重低音冲击时触发）
+function applyChromaticKick(amount) {
+  if (amount <= 0.5) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = clamp(amount / 26, 0, 0.28);
+  ctx.drawImage(compCanvas, amount, 0);
+  ctx.drawImage(compCanvas, -amount, 0);
+  ctx.restore();
+}
+
+function renderMoment(t, liveImg, liveImg2, liveFrac = 0) {
+  arcGallery.visible = false;
+  phone3D.visible = false;
+  const bp = beatPulse(t);
+  silkUniforms.uTime.value = t;
+  silkUniforms.uLight.value = 0;
+  silkUniforms.uPulse.value = bp;
+
+  ctx.clearRect(0, 0, W, H);
+
+  /* =====================================================================
+     ACT I (0.0s - 3.2s): 128 BPM 4 记重击弹射开场（零拖沓！）
+     ===================================================================== */
+  if (t < 3.2) {
+    renderer.render(scene, camera);
+    ctx.drawImage(glCanvas, 0, 0);
+
+    const words = [
+      { t0: 0.0, t1: 0.75, k: 'ZERO RUNTIME', v: '0 依赖' },
+      { t0: 0.75, t1: 1.50, k: 'SINGLE HTML', v: '1 个文件' },
+      { t0: 1.50, t1: 2.25, k: 'THREE.JS REALTIME', v: '3D 书房' },
+      { t0: 2.25, t1: 3.20, k: 'WARM ARCHITECTURAL STUDY', v: 'ChenQiyue V2.0' }
+    ];
+    const cur = words.find((w) => t >= w.t0 && t < w.t1) || words[3];
+    const lt = remap(t, cur.t0, cur.t1);
+    const slam = easeExpoOut(remap(lt, 0, 0.35));
+    const sc = lerp(1.55, 1.0, slam) + bp * 0.03;
+
+    // 背后脉冲建筑拱门线框
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(1 + bp * 0.06, 1 + bp * 0.06);
+    drawArchPath(ctx, 0, 0, 340, 500);
+    ctx.strokeStyle = `rgba(229,168,88,${0.32 + bp * 0.45})`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(sc, sc);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#e5a858'; ctx.font = '600 22px "Consolas", monospace';
+    ctx.fillText(cur.k, 0, -76);
+    ctx.fillStyle = '#faf5ec'; ctx.font = '800 124px "Songti SC","Noto Serif SC","STSong","Microsoft YaHei",serif';
+    ctx.fillText(cur.v, 0, 22);
+    ctx.restore();
+
+    if (lt < 0.22) applyChromaticKick((1 - lt / 0.22) * 14);
+  }
+
+  /* =====================================================================
+     ACT II (3.2s - 7.2s): 暖宣纸门厅极速滑入 + 光标点击 + 0.2s 极速轰穿拱门
+     ===================================================================== */
+  else if (t < 7.2) {
+    silkUniforms.uLight.value = 1;
+    renderer.render(scene, camera);
+    ctx.drawImage(glCanvas, 0, 0);
+
+    const pIn = easeExpoOut(remap(t, 3.2, 4.1));
+    const pClick = remap(t, 5.75, 6.0);
+    const dip = Math.sin(pClick * Math.PI);
+    const pDive = easeExpoIO(remap(t, 6.0, 7.2));
+
+    const bw = 1520, bh = 900;
+    const zoom = lerp(0.86, 1.0, pIn) * (1 + pDive * 4.8);
+    const fx = lerp(W / 2, W / 2 - 440 * zoom, pDive);
+    const fy = lerp(H / 2 + 8, H / 2 - 20 * zoom, pDive);
+
+    ctx.save();
+    ctx.translate(fx, fy); ctx.scale(zoom, zoom);
+    ctx.shadowColor = 'rgba(42,28,14,0.20)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 28;
+    drawRoundedRect(ctx, -bw / 2, -bh / 2, bw, bh, 20);
+    ctx.fillStyle = '#f5f1e8'; ctx.fill(); ctx.shadowColor = 'transparent';
+
+    ctx.save();
+    drawRoundedRect(ctx, -bw / 2, -bh / 2, bw, bh, 20); ctx.clip();
+    drawCover(ctx, IMGS.hall, -bw / 2, -bh / 2, bw, bh, 1.0);
+
+    const cp = easeExpoIO(remap(t, 4.3, 5.65));
+    const btnX = -455, btnY = 170;
+    const cx = lerp(420, btnX, cp), cy = lerp(260, btnY, cp) - Math.sin(cp * Math.PI) * 75;
+    const rip = easeOut(remap(t, 5.8, 6.4));
+    if (rip > 0 && rip < 1) {
+      ctx.strokeStyle = `rgba(184,98,27,${(1 - rip) * 0.9})`; ctx.lineWidth = 5 * (1 - rip);
+      ctx.beginPath(); ctx.arc(btnX, btnY, 14 + rip * 150, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (t >= 4.2 && t < 6.3) drawCursor(ctx, cx, cy, dip);
+    ctx.restore();
+    ctx.restore();
+
+    // 仅在最后 0.22s 做极干脆的闪光 + RGB 色散冲击，绝不长时间白屏！
+    if (t > 6.4) applyChromaticKick(remap(t, 6.4, 7.2) * 18);
+    const fl = easeIn(remap(t, 6.95, 7.2));
+    if (fl > 0) { ctx.fillStyle = `rgba(255,248,236,${fl * 0.92})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  /* =====================================================================
+     ACT III (7.2s - 21.2s · 14 秒高燃主菜): 真实活 3D 书房一镜到底实景运镜 + 实时昼夜风暴
+     ===================================================================== */
+  else if (t < 21.2) {
+    const lt = t - 7.2; // 0 -> 14.0s
+    // 稳如电影轨道车（彻底去掉抽搐缩放与双帧重影，纯净锐利呈现真实 3D 书房运镜！）
+    drawCover(ctx, liveImg || IMGS.roomD, 0, 0, W, H, 1.0, 0, 0);
+
+    // 高速变速节点叠加轻盈 RGB 光学色散脉冲
+    const speedPeak =
+      (lt < 0.35 ? (1 - lt / 0.35) * 16 : 0) +
+      (Math.abs(lt - 6.2) < 0.25 ? (1 - Math.abs(lt - 6.2) / 0.25) * 10 : 0) +
+      (Math.abs(lt - 12.2) < 0.25 ? (1 - Math.abs(lt - 12.2) / 0.25) * 10 : 0);
+    if (speedPeak > 0.5) applyChromaticKick(speedPeak);
+
+    // 极克制的动态实时阶段标（随真实太阳高度切换文案）
+    const phaseLabel =
+      lt < 3.2 ? 'LIVE 3D · DIVE INTO STUDY' :
+      lt < 6.5 ? 'REALTIME · VOLUMETRIC GOLDEN HOUR' :
+      lt < 11.8 ? 'REALTIME · NIGHT LAMP & STARLIGHT' :
+      'LIVE 3D · 6 DIRECTOR CAMERAS';
+    ctx.save();
+    const topG = ctx.createLinearGradient(0, 0, 0, 140);
+    topG.addColorStop(0, 'rgba(12,11,9,0.55)'); topG.addColorStop(1, 'rgba(12,11,9,0)');
+    ctx.fillStyle = topG; ctx.fillRect(0, 0, W, 140);
+    ctx.fillStyle = '#e5a858'; ctx.font = '600 20px "Consolas", monospace';
+    ctx.textAlign = 'left'; ctx.fillText(phaseLabel, 84, 86);
+    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(250,245,236,0.78)';
+    ctx.fillText(`THREE.JS WEBGL · 60 FPS`, W - 84, 86);
+    ctx.restore();
+
+    // 7.2-7.4s 闪白干脆收尾
+    const inF = 1 - easeOut(remap(t, 7.2, 7.42));
+    if (inF > 0) { ctx.fillStyle = `rgba(255,248,236,${inF * 0.9})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  /* =====================================================================
+     ACT IV (21.2s - 27.0s): 广角 3D 弧形作品穹顶高速穿梭（构图舒展不贴脸！）+ Featured 3×3
+     ===================================================================== */
+  else if (t < 27.0) {
+    silkUniforms.uLight.value = 0;
+    arcGallery.visible = true;
+
+    const sw = easeInOut(remap(t, 21.2, 25.4));
+    const camAng = lerp(-1.25, 1.25, sw);
+    camera.fov = 50; // 广角视野，同时完整容纳 3 张错落卡片！
+    camera.position.set(Math.sin(camAng) * 5.2, 0.25, 8.6 + Math.cos(camAng) * 1.2);
+    camera.lookAt(Math.sin(camAng) * 11.2, 0.0, -2.2);
+    camera.updateProjectionMatrix();
+
+    arcCards.forEach((c, i) => { c.position.y = (i % 2 ? 0.38 : -0.34) + Math.sin(t * 2.2 + i) * 0.1; });
+    renderer.render(scene, camera);
+    ctx.drawImage(glCanvas, 0, 0);
+
+    ctx.fillStyle = '#e5a858'; ctx.font = '600 22px "Consolas", monospace'; ctx.textAlign = 'center';
+    ctx.fillText('8 OPEN-SOURCE PROJECTS  ·  GITHUB AUTO SYNC', W / 2, 92);
+
+    // 25.3s -> 27.0s 高燃弹射展开真实 Featured 3×3 作品页
+    const gp = easeExpoOut(remap(t, 25.3, 26.0));
+    if (gp > 0) {
+      ctx.save();
+      ctx.globalAlpha = gp;
+      const gsc = lerp(0.82, 1.0, gp) + bp * 0.015;
+      ctx.translate(W / 2, H / 2); ctx.scale(gsc, gsc);
+      drawRoundedRect(ctx, -790, -455, 1580, 910, 20); ctx.clip();
+      drawCover(ctx, IMGS.work, -790, -455, 1580, 910, 1.02);
+      ctx.restore();
+      if (t < 25.65) applyChromaticKick((1 - remap(t, 25.3, 25.65)) * 12);
+    }
+  }
+
+  /* =====================================================================
+     ACT V (27.0s - 31.0s): 3D 钛金手机极速 360° 炫技翻转 + 便签/抽屉闪切
+     ===================================================================== */
+  else if (t < 31.0) {
+    if (t < 29.5) {
+      const p = remap(t, 27.0, 29.5);
+      silkUniforms.uLight.value = 0;
+      phone3D.visible = true;
+      pFrontMat.map = TEXS.mobile; pBackMat.map = TEXS.land;
+      pFrontMat.needsUpdate = true; pBackMat.needsUpdate = true;
+
+      const fp = easeExpoIO(remap(t, 27.9, 29.1));
+      phone3D.position.set(0, Math.sin(p * Math.PI) * 0.15, 0);
+      phone3D.rotation.y = lerp(-0.45, Math.PI + 0.14, fp);
+      phone3D.rotation.z = lerp(-0.06, -Math.PI / 2, fp);
+
+      camera.fov = 42; camera.position.set(0, 0.1, lerp(8.2, 5.9, easeExpoOut(p)));
+      camera.lookAt(0, 0, 0); camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      ctx.drawImage(glCanvas, 0, 0);
+
+      ctx.fillStyle = '#e5a858'; ctx.font = '600 22px "Consolas", monospace'; ctx.textAlign = 'center';
+      ctx.fillText('DESKTOP · MOBILE · LANDSCAPE 3D HUD', W / 2, 98);
+      if (t > 28.0 && t < 28.6) applyChromaticKick(8);
+    } else {
+      // 29.5s - 31.0s: 便签墙 & 抽屉手稿高燃双分屏冲击
+      const p = remap(t, 29.5, 31.0);
+      const isSecond = t >= 30.25;
+      drawCover(ctx, isSecond ? IMGS.drawer : IMGS.notes, 0, 0, W, H, 1.04 + bp * 0.03, 0, 0);
+      ctx.fillStyle = 'rgba(12,11,9,0.45)'; ctx.fillRect(0, H - 150, W, 150);
+      ctx.fillStyle = '#faf5ec'; ctx.font = '700 48px "Songti SC","Noto Serif SC","STSong",serif'; ctx.textAlign = 'center';
+      ctx.fillText(isSecond ? '抽屉过程稿 · 留住创作的每一步' : '全站实时便签墙 · 265+ 真实访客', W / 2, H - 82);
+      if (Math.abs(t - 30.25) < 0.12) applyChromaticKick(14);
+    }
+  }
+
+  /* =====================================================================
+     ACT VI (31.0s - 33.2s): 16 分音符 8 连高燃快闪蒙太奇！
+     ===================================================================== */
+  else if (t < 33.2) {
+    const seq = [IMGS.hall, IMGS.roomD, IMGS.shelf, IMGS.iso, IMGS.night3, IMGS.work, IMGS.life, IMGS.land];
+    const step = 2.2 / 8; // 0.275s 一闪！
+    const idx = Math.min(7, Math.floor((t - 31.0) / step));
+    const lt = ((t - 31.0) % step) / step;
+    drawCover(ctx, seq[idx], 0, 0, W, H, 1.05 + (1 - easeOut(lt)) * 0.14, 0, 0);
+    applyChromaticKick((1 - lt) * 14);
+    ctx.fillStyle = `rgba(229,168,88,${(1 - lt) * 0.22})`; ctx.fillRect(0, 0, W, H);
+  }
+
+  /* =====================================================================
+     ACT VII (33.2s - 36.0s): 重低音落版 · 暖光拱门定格
+     ===================================================================== */
+  else {
+    silkUniforms.uLight.value = 0;
+    renderer.render(scene, camera);
+    ctx.drawImage(glCanvas, 0, 0);
+
+    const ep = easeExpoOut(remap(t, 33.2, 34.1));
+    const aw = lerp(680, 290, ep), ah = lerp(820, 420, ep);
+    ctx.save();
+    drawArchPath(ctx, W / 2, H / 2 - 16, aw, ah);
+    const ag = ctx.createLinearGradient(0, H / 2 - ah / 2, 0, H / 2 + ah / 2);
+    ag.addColorStop(0, 'rgba(255,238,204,0.14)'); ag.addColorStop(0.6, 'rgba(229,168,88,0.44)'); ag.addColorStop(1, 'rgba(184,98,27,0.62)');
+    ctx.fillStyle = ag; ctx.fill();
+    ctx.strokeStyle = 'rgba(245,204,140,0.88)'; ctx.lineWidth = 2.4; ctx.stroke();
+    ctx.restore();
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#faf5ec'; ctx.font = '700 92px "Consolas", monospace';
+    ctx.fillText('chenqiyue.ccwu.cc', W / 2, H * 0.47);
+    ctx.fillStyle = '#e5a858'; ctx.font = '600 32px "Songti SC","Noto Serif SC","STSong",serif';
+    ctx.fillText('ChenQiyue 的书房 · V2.0.0 · 推门即见', W / 2, H * 0.58);
+    if (t < 33.5) applyChromaticKick((1 - remap(t, 33.2, 33.5)) * 16);
+
+    const fade = easeInOut(remap(t, 35.4, 36.0));
+    if (fade > 0) { ctx.fillStyle = `rgba(12,11,9,${fade})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // 宽银幕 42px 黑边
+  ctx.fillStyle = '#090807';
+  ctx.fillRect(0, 0, W, 42);
+  ctx.fillRect(0, H - 42, W, 42);
+}
+
+// 异步 seek：如果处于真实 3D 书房段则按需载入对应实景帧，并自动在高速运动处应用 3-subframe 快门运动模糊！
+window.seekAsync = async function seekAsync(t) {
+  let liveImg = null, liveImg2 = null, liveFrac = 0;
+  if (t >= 7.2 && t < 21.2) {
+    const fpos = (t - 7.2) * 15;
+    const i0 = Math.floor(fpos);
+    liveFrac = fpos - i0;
+    [liveImg, liveImg2] = await Promise.all([loadLiveFrame(i0), loadLiveFrame(i0 + 1)]);
+  }
+  const fast = (t < 3.2) || (t >= 5.9 && t < 7.5) || (t >= 21.2 && t < 33.5);
+  if (!fast) {
+    renderMoment(t, liveImg, liveImg2, liveFrac);
+    outCtx.globalAlpha = 1;
+    outCtx.drawImage(compCanvas, 0, 0);
+    return;
+  }
+  const offsets = [-0.005, 0, 0.005];
+  const weights = [1.0, 0.55, 0.34];
+  for (let i = 0; i < 3; i++) {
+    renderMoment(clamp(t + offsets[i], 0, 36), liveImg, liveImg2, liveFrac);
+    outCtx.globalAlpha = weights[i];
+    outCtx.drawImage(compCanvas, 0, 0);
+  }
+  outCtx.globalAlpha = 1;
+};
+
+window.__ready = Promise.all(
+  Object.entries(IMG_PATHS).map(([k, src]) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      IMGS[k] = img;
+      const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true;
+      TEXS[k] = tex; resolve();
+    };
+    img.onerror = () => reject(new Error('Failed: ' + src));
+    img.src = src;
+  }))
+).then(() => true);
+</script>
+</body>
+</html>

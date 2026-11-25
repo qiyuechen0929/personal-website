@@ -50,11 +50,23 @@
 
 ---
 
-## 三十秒，先看个片子
+## 宣传片与短片（V2.0.0 & V1.0.0 完整保留）
 
-![短片预览：一扇门，开成一间屋子](docs/screenshots/07-reel-preview.gif)
+### 🎬 V2.0.0 终极高燃宣传大片（36s · 1080p 60fps · 128 BPM）
 
-**《一扇门，开成一间屋子》** —— 30 秒 / 120 BPM / 十个场景 / 60 fps。
+![V2.0.0 宣传大片 4×3 分镜预览](docs/screenshots/21-v2-promo-storyboard.jpg)
+
+为 V2.0.0 量身打造的 **36 秒 1080p 60fps 电影级宣传片**：融合 **GLSL 丝绸流体光场 Shader**、**macOS 真实光标点击穿屏**、**14 秒真实 Three.js 3D 书房一镜到底实景运镜（实时正午→黄昏→深夜暖灯）**、**广角 3D 弧形作品穹顶**、**3D 钛金手机横竖翻转**、**RGB 光学色散脉冲** 与 **180° 快门运动模糊**，配以纯 DSP 合成的 128 BPM 高燃纯音乐。
+
+👉 [**下载 / 查看 V2.0.0 终极高燃大片（`docs/media/v2.0.0-promo-60fps.mp4`）**](docs/media/v2.0.0-promo-60fps.mp4) · 源码见 [`reel/v4-ultimate/`](reel/v4-ultimate/)
+
+---
+
+### 🎞️ V1.0.0 原版短片《一扇门，开成一间屋子》（30s · 完整保留）
+
+![V1.0.0 短片预览：一扇门，开成一间屋子](docs/screenshots/07-reel-preview.gif)
+
+**V1.0.0 初代经典短片** —— 30 秒 / 120 BPM / 十个场景 / 60 fps（已完整保留在 [`vendor/reel/reel-1080.mp4`](vendor/reel/reel-1080.mp4)，早期 V1.0.0 演示视频保留在 [`docs/media/demo.mp4`](docs/media/demo.mp4)）。
 
 没有一个剪辑软件参与：画面是一个 HTML 文件里**逐帧算出来**的，音轨是 **Web Audio 合成**的。
 一个字体、三种颜色、每拍一个动作，每一场都由上一场变形而来；首帧和末帧是同一条线，所以它能一直循环。

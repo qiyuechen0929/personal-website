@@ -1,3 +1,9 @@
-# Demo video
+# 宣传片与演示视频归档
 
-Drop `demo.mp4` here (or attach it to a GitHub Release) and link it from the root README.
+本目录按版本清晰保留各阶段的视频资产：
+
+| 版本 | 文件 | 说明 | 规格 |
+|---|---|---|---|
+| **V2.0.0** | [`v2.0.0-promo-60fps.mp4`](v2.0.0-promo-60fps.mp4) | **V2.0.0 终极高燃宣传大片**：真实 3D 书房一镜到底实景运镜 + 实时昼夜渐变 + GLSL 丝绸光场 + 180° 快门运动模糊 + 128 BPM 定制纯音乐（源码见 [`reel/v4-ultimate/`](../../reel/v4-ultimate/)） | 1920×1080 · 60fps · 36s |
+| **V1.0.0** | [`demo.mp4`](demo.mp4) | **V1.0.0 初代实机演示视频**（完整保留） | 早期版本演示 |
+| **V1.0.0** | [`../../vendor/reel/reel-1080.mp4`](../../vendor/reel/reel-1080.mp4) | **V1.0.0 官网内嵌 30s 代码生成短片《一扇门，开成一间屋子》**（完整保留，源码见 [`reel/`](../../reel/)） | 1920×1080 · 60fps · 30s |
