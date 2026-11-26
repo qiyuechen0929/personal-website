@@ -54,11 +54,11 @@
 
 ### 🎬 V2.0.0 终极高燃宣传大片（36s · 1080p 60fps · 128 BPM）
 
-![V2.0.0 宣传大片 4×3 分镜预览](docs/screenshots/21-v2-promo-storyboard.jpg)
+![V2.0.0 宣传大片动图预览](docs/screenshots/21-v2-promo-preview.gif)
 
 为 V2.0.0 量身打造的 **36 秒 1080p 60fps 电影级宣传片**：融合 **GLSL 丝绸流体光场 Shader**、**macOS 真实光标点击穿屏**、**14 秒真实 Three.js 3D 书房一镜到底实景运镜（实时正午→黄昏→深夜暖灯）**、**广角 3D 弧形作品穹顶**、**3D 钛金手机横竖翻转**、**RGB 光学色散脉冲** 与 **180° 快门运动模糊**，配以纯 DSP 合成的 128 BPM 高燃纯音乐。
 
-👉 [**下载 / 查看 V2.0.0 终极高燃大片（`docs/media/v2.0.0-promo-60fps.mp4`）**](docs/media/v2.0.0-promo-60fps.mp4) · 源码见 [`reel/v4-ultimate/`](reel/v4-ultimate/)
+👉 [**下载 / 观看 1080p 60fps 有声原片（`docs/media/v2.0.0-promo-60fps.mp4`）**](docs/media/v2.0.0-promo-60fps.mp4) · 🖼️ [**4×3 高清分镜总览**](docs/screenshots/21-v2-promo-storyboard.jpg) · 💻 源码见 [`reel/v4-ultimate/`](reel/v4-ultimate/)
 
 ---
 
