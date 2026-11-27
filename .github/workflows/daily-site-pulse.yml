@@ -1,0 +1,42 @@
+name: 每日站点运行脉搏
+
+# 每天北京时间 08:30 自动巡检个人网站与博客的在线状态、响应延迟及 GitHub 仓库统计，
+# 将真实巡检记录写入 docs/status/（不改动首页 README）。
+
+on:
+  schedule:
+    - cron: '30 0 * * *'   # UTC 00:30 = 北京时间 08:30
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 运行每日站点巡检
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/site-pulse.mjs
+
+      - name: 提交巡检快照
+        run: |
+          git add docs/status/daily-pulse.json docs/status/PULSE.md
+          if git diff --cached --quiet; then
+            echo "今日状态无变化"
+            exit 0
+          fi
+          git config user.name  "qiyuechen0929"
+          git config user.email "qiyuechen0929@users.noreply.github.com"
+          DATE=$(TZ='Asia/Shanghai' date +%F)
+          git commit -m "chore(pulse): daily site health check ($DATE)"
+          git push
