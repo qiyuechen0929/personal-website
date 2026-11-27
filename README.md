@@ -70,7 +70,7 @@
 
 **V1.0.0 初代经典短片** —— 30 秒 / 120 BPM / 十个场景 / 60 fps（已完整保留在 [`vendor/reel/reel-1080.mp4`](vendor/reel/reel-1080.mp4)，早期 V1.0.0 演示视频保留在 [`docs/media/demo.mp4`](docs/media/demo.mp4)）。
 
-> 制作模型：由 **deepseek V4.1flash** 制作
+> 制作模型：由 **deepseek V4.1flash（1017）** 制作
 
 没有一个剪辑软件参与：画面是一个 HTML 文件里**逐帧算出来**的，音轨是 **Web Audio 合成**的。
 一个字体、三种颜色、每拍一个动作，每一场都由上一场变形而来；首帧和末帧是同一条线，所以它能一直循环。
