@@ -70,6 +70,12 @@ const entry = {
   checks: checks.map(({ name, ok, status, ms }) => ({ name, ok, status, ms }))
 };
 
+// 如果今天已经成功记录过，跳过重复写入（避免双时段兜底产生多余提交）
+if (history.some((x) => x.date === now.date && x.checks?.every((c) => c.ok)) && !process.env.FORCE_PULSE) {
+  console.log('Today already recorded and healthy, skip:', now.date);
+  process.exit(0);
+}
+
 // 同一天覆盖更新，保留最近 90 天
 history = [entry, ...history.filter((x) => x.date !== now.date)].slice(0, 90);
 
