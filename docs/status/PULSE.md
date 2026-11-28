@@ -1,16 +1,16 @@
 # 站点每日运行脉搏（Daily Site Pulse）
 
-> 最近巡检：`2026-11-28 10:53:04 +08:00` · GitHub 原创仓库 **25** 个 · 累计 Star **28**
+> 最近巡检：`2026-11-28 23:46:29 +08:00` · GitHub 原创仓库 **25** 个 · 累计 Star **28**
 
 | 站点 / 接口 | 状态 | 耗时 |
 |---|---|---|
-| [个人网站 · 书房](https://chenqiyue.ccwu.cc/) | ✅ 200 | 1286 ms |
-| [便签墙 API](https://chenqiyue.ccwu.cc/api/notes?limit=1) | ✅ 200 | 1395 ms |
-| [复古桌面博客](https://060929.xyz/) | ⚠️ TypeError | 484 ms |
+| [个人网站 · 书房](https://chenqiyue.ccwu.cc/) | ✅ 200 | 1265 ms |
+| [便签墙 API](https://chenqiyue.ccwu.cc/api/notes?limit=1) | ✅ 200 | 1144 ms |
+| [复古桌面博客](https://060929.xyz/) | ⚠️ TypeError | 488 ms |
 
 ## 最近记录（保留 90 天）
 
 | 日期 | 个人网站 | 便签墙 API | 博客 | 仓库 / Star |
 |---|---|---|---|---|
-| 2026-11-28 | ✅ 1286ms | ✅ 1395ms | ⚠️ ERR | 25 / ⭐28 |
+| 2026-11-28 | ✅ 1265ms | ✅ 1144ms | ⚠️ ERR | 25 / ⭐28 |
 | 2026-11-27 | ✅ 3213ms | ✅ 1295ms | ✅ 2211ms | - |
