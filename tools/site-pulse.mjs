@@ -13,16 +13,18 @@ const TARGETS = [
 ];
 
 async function probe(url) {
-  const t0 = Date.now();
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 10000);
-  try {
-    const res = await fetch(url, { method: 'GET', signal: ac.signal, redirect: 'follow' });
-    return { ok: res.ok, status: res.status, ms: Date.now() - t0 };
-  } catch (e) {
-    return { ok: false, status: 0, ms: Date.now() - t0, err: e.name || 'ERR' };
-  } finally {
-    clearTimeout(timer);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const t0 = Date.now();
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 15000);
+    try {
+      const res = await fetch(url, { method: 'GET', signal: ac.signal, redirect: 'follow' });
+      clearTimeout(timer);
+      if (res.ok || attempt === 1) return { ok: res.ok, status: res.status, ms: Date.now() - t0 };
+    } catch (e) {
+      clearTimeout(timer);
+      if (attempt === 1) return { ok: false, status: 0, ms: Date.now() - t0, err: e.name || 'ERR' };
+    }
   }
 }
 
@@ -70,8 +72,8 @@ const entry = {
   checks: checks.map(({ name, ok, status, ms }) => ({ name, ok, status, ms }))
 };
 
-// 如果今天已经成功记录过，跳过重复写入（避免双时段兜底产生多余提交）
-if (history.some((x) => x.date === now.date && x.checks?.every((c) => c.ok)) && !process.env.FORCE_PULSE) {
+// 如果今天已经成功记录过，跳过重复写入（避免多时段兜底产生多余提交）
+if (history.some((x) => x.date === now.date && x.checks?.every((c) => c.ok)) && process.env.FORCE_PULSE !== 'true') {
   console.log('Today already recorded and healthy, skip:', now.date);
   process.exit(0);
 }

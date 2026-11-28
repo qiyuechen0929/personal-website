@@ -1,17 +1,28 @@
 name: 每日站点运行脉搏
 
-# 每天北京时间 08:30 自动巡检个人网站与博客的在线状态、响应延迟及 GitHub 仓库统计，
-# 将真实巡检记录写入 docs/status/（不改动首页 README）。
+# 每天错峰 3 次自动巡检个人网站与博客的在线状态、响应延迟及 GitHub 仓库统计，
+# 当天首次成功即提交一次快照到 docs/status/，后续时段自动跳过（不改动首页 README）。
 
 on:
   schedule:
-    # 避开 UTC 00:00 全球高峰期，采用两个非整点错峰时段双保险（当天已记录则自动跳过）
+    # 避开 UTC 00:00 全球整点/半点高峰，设置 3 个非整点错峰时段三重兜底（均落在同一 UTC 与北京时间日期内）
     - cron: '17 1 * * *'   # UTC 01:17 = 北京时间 09:17
-    - cron: '43 9 * * *'   # UTC 09:43 = 北京时间 17:43
+    - cron: '37 6 * * *'   # UTC 06:37 = 北京时间 14:37
+    - cron: '43 11 * * *'  # UTC 11:43 = 北京时间 19:43
   workflow_dispatch:
+    inputs:
+      force:
+        description: '即使今天已有记录也强制重新巡检并提交'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
+
+concurrency:
+  group: daily-site-pulse
+  cancel-in-progress: false
 
 jobs:
   pulse:
@@ -19,6 +30,8 @@ jobs:
     steps:
       - name: 检出仓库
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 准备 Node
         uses: actions/setup-node@v4
@@ -28,17 +41,23 @@ jobs:
       - name: 运行每日站点巡检
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_PULSE: ${{ inputs.force }}
         run: node tools/site-pulse.mjs
 
       - name: 提交巡检快照
         run: |
           git add docs/status/daily-pulse.json docs/status/PULSE.md
           if git diff --cached --quiet; then
-            echo "今日状态无变化"
+            echo "今日已记录且状态无变化，跳过提交"
             exit 0
           fi
           git config user.name  "qiyuechen0929"
           git config user.email "qiyuechen0929@users.noreply.github.com"
           DATE=$(TZ='Asia/Shanghai' date +%F)
           git commit -m "chore(pulse): daily site health check ($DATE)"
-          git push
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            echo "push 第 $i 次失败，5 秒后重试..."
+            sleep 5
+          done
+          exit 1
